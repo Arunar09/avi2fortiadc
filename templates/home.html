@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block page_meta %}
+  <span class="page-meta">
+    {{ pipeline.root_count if pipeline else 0 }} environment(s) tracked
+    {% if pipeline and pipeline.total_count > pipeline.root_count %}
+        <span class="text-mini text-muted">({{ pipeline.total_count }} total tasks)</span>
+    {% endif %}
+  </span>
+{% endblock %}
+
+{% block content %}
+<style>
+  .phase-mini-dot { width: 6px; height: 6px; border-radius: 50%; background: #2a2f45; }
+  .phase-mini-dot.completed { background: #4CAF50; }
+  .phase-mini-dot.failed { background: #f44336; }
+  .phase-mini-dot.in_progress { background: #2196F3; }
+  .decision-glow-btn {
+    background: rgba(97,175,239,0.16) !important;
+    border: 1px solid rgba(97,175,239,0.3) !important;
+    color: #8fc8ff !important;
+    font-weight: 700;
+    box-shadow: 0 0 0 1px rgba(97,175,239,0.08), 0 0 18px rgba(97,175,239,0.18);
+  }
+</style>
+
+
+
+<div class="card-title">Pipeline Phases</div>
+{% if pipeline and pipeline.tenant_groups %}
+  {% for tenant_group in pipeline.tenant_groups %}
+  <div class="tenant-group" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+    {% if tenant_group.tenant != 'Global/System' %}
+    <div class="tenant-group-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e2235; padding-bottom: 8px;">
+      <div>
+        <div class="tenant-group-title" style="font-weight: 700; color: #e0e4f8;">{{ tenant_group.tenant }}</div>
+        <div class="text-small text-muted">{{ tenant_group.count }} environment(s) • {{ tenant_group.vs_total }} VS total</div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        {% if tenant_group.blocked_count > 0 %}
+          <span class="badge badge-red">{{ tenant_group.blocked_count }} blocked</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="environments-list" style="display: flex; flex-direction: column; gap: 8px;">
+    {% for env in tenant_group.environments %}
+    <div class="pipeline-env" style="margin-bottom: 0;">
+      <div class="env-header d-flex align-items-center justify-content-between mb-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="env-name">{{ env.name }}</span>
+          <button class="ai-trigger" onclick="openAIDrawer('Provide an overview of the current status and risks for environment {{ env.name }}.', '{{ env.name }}')" title="AI Phase Diagnosis">✨</button>
+          {% if env.blocked %}
+            <span class="badge badge-red" title="{{ env.block_reason or 'Operation blocked' }}" style="cursor: help;">BLOCKED</span>
+          {% elif env.current_phase %}
+            <span class="badge badge-blue">IN PROGRESS</span>
+          {% else %}
+            <span class="badge badge-gray">COMPLETED</span>
+          {% endif %}
+          {% if env.counts and env.counts.virtual_services %}
+            <span class="text-mini text-muted ms-2">{{ env.counts.virtual_services }} VS</span>
+          {% endif %}
+          {% if env.sub_tasks %}
+            <span class="badge badge-gray" style="background: rgba(100, 108, 255, 0.1); border: 1px solid rgba(100, 108, 255, 0.2); color: #7c72ff;">{{ env.sub_tasks | length }} Sub-tasks</span>
+          {% endif %}
+        </div>
+        <div class="d-flex gap-2">
+          <a href="/decisions/{{ env.name }}" class="btn btn-mini decision-glow-btn" title="Decision Center">Decisions</a>
+          <a href="/pipeline/{{ env.name }}" class="btn-icon" title="View Timeline History">&#10142;</a>
+          <button type="button" class="btn-icon text-red" title="Delete Environment" data-delete-env="{{ env.name }}">&#128465;</button>
+        </div>
+      </div>
+
+      <div class="phase-row d-flex gap-1 mb-3">
+        {% for ph in env.phases %}
+          <span class="phase-chip {{ ph.status }}">
+            {% if ph.status == 'completed' %}&#10004;{% elif ph.status == 'failed' %}&#10006;{% elif ph.status == 'in_progress' %}&#9654;{% else %}&#9679;{% endif %}
+            {{ ph.label }}
+          </span>
+        {% endfor %}
+      </div>
+
+      <div class="env-footer border-top border-secondary border-opacity-10 pt-2">
+        {% if env.last_action %}
+          <div class="text-small text-muted mb-1">
+            <span class="text-info font-monospace">{{ env.last_action.phase }}:</span> {{ env.last_action.action.replace('_', ' ') }}
+            {% if env.last_action.detail and env.last_action.detail.notes %}
+               &mdash; <span class="text-white">{{ env.last_action.detail.notes }}</span>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if env.current_phase %}
+          <div class="text-small text-muted">
+            Next Phase: <strong class="text-white">{{ env.current_phase | capitalize }}</strong>
+            {% if env.unsupported_open > 0 %}
+              &nbsp; <span class="text-yellow">({{ env.unsupported_open }} manual items pending)</span>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Sub-tasks Nesting -->
+    {% if env.sub_tasks %}
+    <div class="sub-tasks-section" style="margin-left: 28px; border-left: 2px solid #1e2235; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; margin-bottom: 16px;">
+      {% for sub in env.sub_tasks %}
+      <div class="sub-task-row d-flex align-items-center justify-content-between" style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+        <div class="d-flex align-items-center gap-3">
+          <span style="color: #4a516e; font-size: 0.8rem;">└──</span>
+          <span class="env-name" style="font-size: 0.85rem; font-weight: 500;">{{ sub.name }}</span>
+          {% if sub.blocked %}
+            <span class="badge badge-red" style="font-size: 0.65rem; padding: 2px 4px; cursor: help;" title="{{ sub.block_reason or 'Sub-task operation blocked' }}">BLOCKED</span>
+          {% else %}
+            <span class="badge badge-gray" style="font-size: 0.65rem; padding: 2px 4px; opacity: 0.8;">{{ sub.current_phase | upper }}</span>
+          {% endif %}
+          <div class="phase-mini-dots d-flex gap-1">
+            {% for ph in sub.phases %}
+              <div class="phase-mini-dot {{ ph.status }}" title="{{ ph.label }}: {{ ph.status }}"></div>
+            {% endfor %}
+          </div>
+          {% if sub.counts and sub.counts.virtual_services %}
+             <span class="text-mini text-muted ms-1" style="font-size: 0.65rem; opacity: 0.7;">{{ sub.counts.virtual_services }} VS</span>
+          {% endif %}
+        </div>
+        <div class="d-flex gap-2">
+          <a href="/decisions/{{ sub.name }}" class="btn btn-mini decision-glow-btn" style="font-size: 0.72rem; padding: 4px 8px;" title="Decision Center">Decisions</a>
+          <a href="/pipeline/{{ sub.name }}" class="btn-icon" style="font-size: 0.85rem; padding: 2px;" title="View Timeline">&#10142;</a>
+          {% if current_user.has_role('admin') or current_user.has_role('user') %}
+          <button type="button" class="btn-icon text-red" style="font-size: 0.85rem; padding: 2px;" title="Delete Sub-task" data-delete-env="{{ sub.name }}">&#128465;</button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="panel text-muted">
+    No environments found in <code>state/</code>. Run
+    <code>python3 migrate.py discover --env &lt;env&gt;</code> to begin.
+  </div>
+{% endif %}
+
+<div class="d-flex align-items-center justify-content-between mt-4 mb-2">
+  <div class="card-title m-0">Recent Activity</div>
+  
+  <form class="d-flex gap-2" method="GET" action="/">
+    <!-- Source Filter -->
+    <select name="source" class="input-mini" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #8892aa; padding: 2px 8px; font-size: 0.72rem; border-radius: 4px;" onchange="this.form.submit()">
+        <option value="" {% if not current_source %}selected{% endif %}>All Sources</option>
+        <option value="system" {% if current_source == 'system' %}selected{% endif %}>System Logs</option>
+        <option value="migration" {% if current_source == 'migration' %}selected{% endif %}>Migration Logs</option>
+    </select>
+
+    <!-- Level Filter -->
+    <select name="level" class="input-mini" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #8892aa; padding: 2px 8px; font-size: 0.72rem; border-radius: 4px;" onchange="this.form.submit()">
+        <option value="" {% if not current_level %}selected{% endif %}>All Levels</option>
+        <option value="INFO" {% if current_level == 'INFO' %}selected{% endif %}>INFO</option>
+        <option value="WARN" {% if current_level == 'WARN' %}selected{% endif %}>WARN</option>
+        <option value="ERROR" {% if current_level == 'ERROR' %}selected{% endif %}>ERROR</option>
+    </select>
+
+    <!-- Duration Filter -->
+    <select name="duration" class="input-mini" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #8892aa; padding: 2px 8px; font-size: 0.72rem; border-radius: 4px;" onchange="this.form.submit()">
+        <option value="1h" {% if current_duration == '1h' %}selected{% endif %}>Last 1h</option>
+        <option value="6h" {% if current_duration == '6h' %}selected{% endif %}>Last 6h</option>
+        <option value="24h" {% if current_duration == '24h' %}selected{% endif %}>Last 24h</option>
+        <option value="7d" {% if current_duration == '7d' %}selected{% endif %}>Last 7d</option>
+        <option value="all" {% if current_duration == 'all' %}selected{% endif %}>All Time</option>
+    </select>
+    
+    <button type="button" class="btn btn-mini btn-ghost" onclick="window.location.reload()" style="padding: 2px 10px;">
+        ↻
+    </button>
+  </form>
+</div>
+
+<div class="card p-0" style="border: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.12); min-height: 400px; display: flex; flex-direction: column;">
+  {% if recent %}
+  <div style="flex-grow: 1; overflow-y: auto; max-height: 600px;">
+    <ul class="activity-list" style="padding: 4px 0;">
+      {% for ev in recent %}
+      <li class="activity-item d-flex align-items-center gap-3" style="padding: 6px 14px; border-bottom: 1px solid rgba(255,255,255,0.03);">
+        <span class="activity-ts text-mono text-mini" style="color: #6a737d; min-width: 140px;">{{ ev.timestamp[:19].replace('T',' ') if ev.timestamp else '' }}</span>
+        <span class="activity-level level-{{ ev.level }}" style="min-width: 60px; text-align: center;">{{ ev.level }}</span>
+        <span class="badge {% if ev.get('_source') == 'system-auth' %}badge-orange{% else %}badge-blue{% endif %} text-mini" style="min-width: 120px; font-weight: 600; text-transform: uppercase;">
+            {{ ev.get('_source','') }}
+        </span>
+        <span style="color:#c9d1d9; font-size:0.82rem;">
+            {% if ev.env and ev.env.lower() != ev._source.lower() and ev._source != 'system-auth' %}
+                <strong style="color: #58a6ff; font-family: monospace; font-size: 0.75rem; margin-right: 8px;">[{{ ev.env | upper }}]</strong>
+            {% endif %}
+            {% if "Full log: " in ev.message %}
+                {% set msg_parts = ev.message.split("Full log: ") %}
+                {{ msg_parts[0] }}
+                <details class="mt-2" style="background: rgba(0,0,0,0.3); border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);">
+                    <summary class="text-mini py-1 px-2 cursor-pointer" style="color: #58a6ff; font-weight: 600;">
+                        ▶ View Execution Log ({{ msg_parts[1] }})
+                    </summary>
+                    <div class="p-2" style="max-height: 400px; overflow-y: auto;">
+                        <iframe src="/logs/view/{{ msg_parts[1] }}" 
+                                style="width: 100%; height: 380px; border: none; background: transparent;"
+                                loading="lazy"></iframe>
+                    </div>
+                </details>
+            {% else %}
+                {{ ev.message }}
+            {% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  
+  <!-- Pagination Controls -->
+  {% if pagination and pagination.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center" style="background: rgba(0,0,0,0.2); padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.05);">
+    <div class="text-mini text-muted">
+        Showing {{ recent | length }} of {{ pagination.total }} entries
+    </div>
+    <div class="d-flex gap-1">
+        {% set nav_params = "duration=" ~ pagination.duration ~ "&level=" ~ pagination.level ~ "&source=" ~ pagination.source %}
+        <a href="/?{{ nav_params }}&page=1" class="btn btn-mini {% if pagination.current_page == 1 %}disabled{% endif %}" style="padding: 2px 8px;">First</a>
+        <a href="/?{{ nav_params }}&page={{ pagination.current_page - 1 }}" class="btn btn-mini {% if pagination.current_page == 1 %}disabled{% endif %}" style="padding: 2px 8px;">Prev</a>
+        
+        <span class="text-mini text-muted mx-2">Page {{ pagination.current_page }} of {{ pagination.pages }}</span>
+        
+        <a href="/?{{ nav_params }}&page={{ pagination.current_page + 1 }}" class="btn btn-mini {% if pagination.current_page == pagination.pages %}disabled{% endif %}" style="padding: 2px 8px;">Next</a>
+        <a href="/?{{ nav_params }}&page={{ pagination.pages }}" class="btn btn-mini {% if pagination.current_page == pagination.pages %}disabled{% endif %}" style="padding: 2px 8px;">Last</a>
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div style="padding:40px; text-align: center;" class="text-muted">
+    <div style="font-size: 2rem; margin-bottom: 12px; opacity: 0.2;">📜</div>
+    <div class="text-small">No activity logs found for the selected period.</div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block page_meta %}
+  <span class="page-meta">{{ reports | length }} report(s) &nbsp;&bull;&nbsp; {{ artifacts | length }} artifact(s)</span>
+{% endblock %}
+
+{% block content %}
+
+{# ── Env filter ──────────────────────────────────────────────────────────── #}
+<div class="flex flex-gap items-center mb-3">
+  <form method="GET" style="display:flex;gap:8px;align-items:center;">
+    <select name="env" style="min-width:140px;">
+      <option value="">All environments</option>
+      {% for env in envs %}
+        <option value="{{ env }}" {{ 'selected' if selected_env == env }}>{{ env }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-ghost btn-sm" type="submit">Filter</button>
+    {% if selected_env %}
+      <a href="{{ url_for('main.reports') }}" class="btn btn-ghost btn-sm">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+{# ── Reports table ───────────────────────────────────────────────────────── #}
+<div class="card-title">Analysis Reports</div>
+<div class="card" style="padding:0;">
+  {% if reports %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Environment</th>
+        <th>File</th>
+        <th>Type</th>
+        <th>Size</th>
+        <th class="text-right">Modified</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in reports %}
+      {% if not selected_env or r.env == selected_env %}
+      <tr onclick="window.open('/reports/view/{{ r.filename }}', '_blank')" style="cursor:pointer;">
+        <td><span class="badge badge-gray">{{ r.env }}</span></td>
+        <td class="text-mono"><a href="/reports/view/{{ r.filename }}" target="_blank">{{ r.filename }}</a></td>
+        <td>{{ r.type }}</td>
+        <td class="text-muted">{{ r.size_kb }} KB</td>
+        <td class="text-right text-small text-muted">{{ r.mtime_display }}</td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="padding:14px 16px;" class="text-muted text-small">
+    No reports found in <code>reports/</code>.
+    Run <code>python3 migrate.py analyse --input discovery/&lt;env&gt;.json</code> to generate.
+  </div>
+  {% endif %}
+</div>
+
+{# ── Artifacts table ─────────────────────────────────────────────────────── #}
+<div class="card-title mt-4">FortiADC Config Artifacts</div>
+<div class="card" style="padding:0;">
+  {% if artifacts %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Environment</th>
+        <th>File</th>
+        <th>VS</th>
+        <th>Pools</th>
+        <th>Certs</th>
+        <th>Size</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in artifacts %}
+      <tr>
+        <td><span class="badge badge-gray">{{ a.env }}</span></td>
+        <td class="text-mono">{{ a.filename }}</td>
+        <td>{{ a.vs_count }}</td>
+        <td>{{ a.pool_count }}</td>
+        <td>{{ a.cert_count }}</td>
+        <td class="text-muted">{{ a.size_kb }} KB</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="padding:14px 16px;" class="text-muted text-small">
+    No FortiADC config artifacts in <code>fortiadc/</code>.
+    Run <code>python3 migrate.py transform --input discovery/&lt;env&gt;.json</code> first.
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

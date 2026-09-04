@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-3">{{ page_title }}</h1>
+        <p class="text-muted">Upload an Avi configuration export (JSON) or a normalized discovery file. The tool will automatically classify and resolve dependencies across tenants.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        {# ── Success State ── #}
+        {% if result and result.success %}
+        <div class="card bg-success bg-opacity-10 border-success mb-4 p-4 animate-fade-in shadow-sm">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="text-success" style="font-size: 2.5rem;">✔</div>
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h4 class="mb-1 text-white">Import Successful</h4>
+                        <button class="ai-trigger" onclick="openAIDrawer('Perform a topology audit for the newly imported assets in {{ result.env }}. Identify high-risk objects.', '{{ result.env }}')" title="AI Topology Audit">✨</button>
+                    </div>
+                    <div class="text-muted">Environment '{{ result.env }}' created</div>
+                </div>
+            </div>
+
+            <div class="panel border-secondary mb-4">
+                <div class="text-info small mb-2 uppercase tracking-tight font-bold">Normalized Asset Summary</div>
+                <div class="grid-3 text-center py-2">
+                    {% for key, count in result.counts.items() %}
+                    <div class="p-2 border border-secondary border-opacity-10 rounded">
+                        <div class="text-info font-bold fs-5">{{ count }}</div>
+                        <div class="text-mini text-muted uppercase">{{ key.replace('_', ' ') }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="d-flex gap-3">
+                <a href="/pipeline/{{ result.env }}" class="btn btn-primary">
+                    Start Analysis ➔
+                </a>
+                <a href="/import" class="btn btn-ghost">
+                    Import Another
+                </a>
+            </div>
+        </div>
+        {% else %}
+        {# ── Import Form ── #}
+        <div class="card border-secondary shadow-sm">
+            <div class="card-body p-4">
+                <form action="/import" method="POST" enctype="multipart/form-data" id="importForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="payload_type" value="normalized_discovery">
+                    <div class="mb-4">
+                        <label class="form-label text-light mb-1 d-block font-bold">Environment Name</label>
+                        <input type="text" name="env_name" class="w-100" placeholder="e.g. dev-c, staging-internal" required pattern="[a-z0-9\-]+" title="Lowercase letters, numbers, and hyphens only">
+                        <div class="text-mini text-muted mt-1">Unique identifier for this migration cohort (lowercase and hyphens only).</div>
+                    </div>
+
+                    <div class="upload-zone p-5 text-center border-dashed border-secondary rounded mb-4" id="dropzone">
+                        <div class="mb-3 text-muted">
+                            Drag and drop your .json file here or click to browse
+                        </div>
+                        <input type="file" name="config_file" id="fileInput" class="d-none" accept=".json" required>
+                        <button type="button" class="btn btn-ghost" onclick="document.getElementById('fileInput').click()">
+                            Select File
+                        </button>
+                        <div id="fileName" class="text-info mt-3 small font-bold d-none"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3 d-flex align-items-center justify-content-center gap-2" id="submitBtn">
+                        Process and Import config
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card h-100 border-secondary border-opacity-50">
+            <div class="card-header bg-transparent border-secondary border-opacity-50 py-3">
+                <h5 class="mb-0 text-info font-monospace small uppercase tracking-wider">Supported Formats</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-4">
+                        <div class="text-light font-bold mb-1">● Normalized Discovery JSON</div>
+                        <p class="text-mini text-muted mb-0">Upload a raw Avi JSON export or a previously exported discovery file for strict validation and import.</p>
+                    </li>
+                </ul>
+                <div class="panel border-secondary border-opacity-25 mt-4 p-3 bg-secondary bg-opacity-5 rounded">
+                    <div class="text-mini text-muted italic">
+                        Environment isolation is enforced by sub-directory. Use the analyzer as the normalization step before importing.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const form = document.getElementById('importForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (dropzone) {
+        dropzone.addEventListener('dragover', (e) => { 
+            e.preventDefault(); 
+            dropzone.style.borderColor = '#5b9cf6';
+            dropzone.style.backgroundColor = 'rgba(91, 156, 246, 0.05)';
+        });
+        dropzone.addEventListener('dragleave', () => { 
+            dropzone.style.borderColor = '#2a2f45';
+            dropzone.style.backgroundColor = 'transparent';
+        });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = '#2a2f45';
+            dropzone.style.backgroundColor = 'transparent';
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                updateFileInfo();
+            }
+        });
+
+        fileInput.onchange = updateFileInfo;
+    }
+
+    function updateFileInfo() {
+        if (fileInput.files.length) {
+            fileName.textContent = `Selected: ${fileInput.files[0].name}`;
+            fileName.classList.remove('d-none');
+        } else {
+            fileName.classList.add('d-none');
+        }
+    }
+
+    if (form) {
+        form.onsubmit = () => {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+        };
+    }
+</script>
+
+<style>
+    .border-dashed { border-style: dashed !important; border-width: 2px !important; }
+    .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .uppercase { text-transform: uppercase; }
+    .tracking-tight { letter-spacing: -0.02em; }
+    .font-bold { font-weight: 700; }
+    .fs-5 { font-size: 1.25rem; }
+    .fs-1 { font-size: 2.5rem; }
+</style>
+{% endblock %}

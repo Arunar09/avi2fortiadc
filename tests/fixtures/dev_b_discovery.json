@@ -1,0 +1,266 @@
+{
+  "_meta": {
+    "tool_version": "0.8.0",
+    "avi_controller": "https://avi-mock.local",
+    "tenant": "Tenant-Dev-B",
+    "collected_at": "2026-04-14T06:00:00Z",
+    "collected_by": "fixture"
+  },
+  "virtual_services": [
+    {
+      "name": "vs-web-http",
+      "uuid": "vs-0001-web-http",
+      "enabled": true,
+      "_vips": ["10.10.0.10"],
+      "_health": "OPER_UP",
+      "_has_datascripts": false,
+      "_has_http_policies": false,
+      "services": [{"port": 80, "enable_ssl": false}],
+      "_resolved": {
+        "pool_ref": "pool-web",
+        "ssl_profile_ref": "",
+        "application_profile_ref": "System-HTTP",
+        "ssl_key_and_certificate_refs": [],
+        "network_profile_ref": "",
+        "se_group_ref": "Default-Group",
+        "vsvip_ref": "vsvip-web"
+      }
+    },
+    {
+      "name": "vs-api-https",
+      "uuid": "vs-0002-api-https",
+      "enabled": true,
+      "_vips": ["10.10.0.11"],
+      "_health": "OPER_UP",
+      "_has_datascripts": false,
+      "_has_http_policies": false,
+      "services": [{"port": 443, "enable_ssl": true}],
+      "_resolved": {
+        "pool_ref": "pool-api",
+        "ssl_profile_ref": "ssl-profile-tls12",
+        "application_profile_ref": "System-HTTP",
+        "ssl_key_and_certificate_refs": ["cert-wildcard"],
+        "network_profile_ref": "",
+        "se_group_ref": "Default-Group",
+        "vsvip_ref": "vsvip-api"
+      }
+    },
+    {
+      "name": "vs-ds-redirect",
+      "uuid": "vs-0003-ds-redirect",
+      "enabled": true,
+      "_vips": ["10.10.0.12"],
+      "_health": "OPER_UP",
+      "_has_datascripts": true,
+      "_has_http_policies": false,
+      "services": [{"port": 80}],
+      "vs_datascripts": [{"vs_datascript_set_ref": "https://avi/api/vsdatascriptset/ds-redir-001"}],
+      "_resolved": {
+        "pool_ref": "pool-legacy",
+        "ssl_profile_ref": "",
+        "application_profile_ref": "System-HTTP",
+        "ssl_key_and_certificate_refs": [],
+        "network_profile_ref": "",
+        "se_group_ref": "Default-Group",
+        "vsvip_ref": "vsvip-legacy"
+      }
+    },
+    {
+      "name": "vs-tcp-db",
+      "uuid": "vs-0004-tcp-db",
+      "enabled": true,
+      "_vips": ["10.10.0.13"],
+      "_health": "OPER_UP",
+      "_has_datascripts": false,
+      "_has_http_policies": false,
+      "services": [{"port": 5432, "enable_ssl": false}],
+      "_resolved": {
+        "pool_ref": "pool-db",
+        "ssl_profile_ref": "",
+        "application_profile_ref": "System-L4-Application",
+        "ssl_key_and_certificate_refs": [],
+        "network_profile_ref": "System-TCP-Proxy",
+        "se_group_ref": "Default-Group",
+        "vsvip_ref": "vsvip-db"
+      }
+    }
+  ],
+  "pools": [
+    {
+      "name": "pool-web",
+      "uuid": "pool-0001-web",
+      "lb_algorithm": "LB_ALGORITHM_LEAST_CONNECTIONS",
+      "default_server_port": 8080,
+      "_member_count": 3,
+      "_members_up": 3,
+      "_health_monitor_name": "hm-http-basic",
+      "servers": [
+        {"ip": {"addr": "10.10.1.10"}, "port": 8080, "enabled": true, "ratio": 1},
+        {"ip": {"addr": "10.10.1.11"}, "port": 8080, "enabled": true, "ratio": 1},
+        {"ip": {"addr": "10.10.1.12"}, "port": 8080, "enabled": true, "ratio": 1}
+      ],
+      "health_monitor_refs": ["https://avi/api/healthmonitor/hm-0001"]
+    },
+    {
+      "name": "pool-api",
+      "uuid": "pool-0002-api",
+      "lb_algorithm": "LB_ALGORITHM_ROUND_ROBIN",
+      "default_server_port": 9090,
+      "_member_count": 2,
+      "_members_up": 2,
+      "_health_monitor_name": "hm-https-api",
+      "servers": [
+        {"ip": {"addr": "10.10.2.10"}, "port": 9090, "enabled": true, "ratio": 1},
+        {"ip": {"addr": "10.10.2.11"}, "port": 9090, "enabled": true, "ratio": 1}
+      ],
+      "health_monitor_refs": ["https://avi/api/healthmonitor/hm-0002"]
+    },
+    {
+      "name": "pool-legacy",
+      "uuid": "pool-0003-legacy",
+      "lb_algorithm": "LB_ALGORITHM_RANDOM",
+      "default_server_port": 8000,
+      "_member_count": 2,
+      "_members_up": 1,
+      "_health_monitor_name": "",
+      "servers": [
+        {"ip": {"addr": "10.10.3.10"}, "port": 8000, "enabled": true,  "ratio": 1},
+        {"ip": {"addr": "10.10.3.11"}, "port": 8000, "enabled": false, "ratio": 1}
+      ],
+      "health_monitor_refs": []
+    },
+    {
+      "name": "pool-db",
+      "uuid": "pool-0004-db",
+      "lb_algorithm": "LB_ALGORITHM_LEAST_CONNECTIONS",
+      "default_server_port": 5432,
+      "_member_count": 2,
+      "_members_up": 2,
+      "_health_monitor_name": "hm-tcp-db",
+      "servers": [
+        {"ip": {"addr": "10.10.4.10"}, "port": 5432, "enabled": true, "ratio": 1},
+        {"ip": {"addr": "10.10.4.11"}, "port": 5432, "enabled": true, "ratio": 1}
+      ],
+      "health_monitor_refs": ["https://avi/api/healthmonitor/hm-0003"]
+    }
+  ],
+  "health_monitors": [
+    {
+      "name": "hm-http-basic",
+      "uuid": "hm-0001",
+      "type": "HEALTH_MONITOR_HTTP",
+      "send_interval": 10,
+      "receive_timeout": 4,
+      "failed_checks": 3,
+      "successful_checks": 2,
+      "http_monitor": {
+        "http_request": "GET /health HTTP/1.0",
+        "http_response_code": ["HTTP_2XX"]
+      }
+    },
+    {
+      "name": "hm-https-api",
+      "uuid": "hm-0002",
+      "type": "HEALTH_MONITOR_HTTPS",
+      "send_interval": 15,
+      "receive_timeout": 5,
+      "failed_checks": 3,
+      "successful_checks": 2,
+      "http_monitor": {
+        "http_request": "GET /api/health HTTP/1.0",
+        "http_response_code": ["HTTP_2XX"]
+      }
+    },
+    {
+      "name": "hm-tcp-db",
+      "uuid": "hm-0003",
+      "type": "HEALTH_MONITOR_TCP",
+      "send_interval": 10,
+      "receive_timeout": 4,
+      "failed_checks": 3,
+      "successful_checks": 2
+    }
+  ],
+  "ssl_certificates": [
+    {
+      "name": "cert-wildcard",
+      "uuid": "cert-0001",
+      "_exportable": true,
+      "_days_until_expiry": 180,
+      "_subject": "CN=*.example.internal",
+      "_issuer": "CN=Internal-CA",
+      "_not_after": "2026-10-14T00:00:00Z",
+      "_sans": ["*.example.internal", "example.internal"]
+    },
+    {
+      "name": "cert-hsm-api",
+      "uuid": "cert-0002",
+      "_exportable": false,
+      "_days_until_expiry": 45,
+      "_subject": "CN=api.example.internal",
+      "_issuer": "CN=Internal-HSM-CA",
+      "_not_after": "2026-05-29T00:00:00Z",
+      "_sans": ["api.example.internal"]
+    }
+  ],
+  "ssl_profiles": [
+    {
+      "name": "ssl-profile-tls12",
+      "uuid": "ssl-0001",
+      "_min_tls_version": "tls1.2",
+      "accepted_versions": [
+        {"type": "SSL_VERSION_TLS1_2"},
+        {"type": "SSL_VERSION_TLS1_3"}
+      ],
+      "accepted_ciphers": "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256"
+    }
+  ],
+  "datascripts": [
+    {
+      "name": "ds-redirect-http",
+      "uuid": "ds-0001",
+      "_events": ["HTTP_REQ"],
+      "_total_lines": 5,
+      "datascript": [
+        {
+          "evt": "HTTP_REQ",
+          "script": "avi.http.redirect('https://' .. avi.http.hostname() .. avi.http.get_uri())"
+        }
+      ]
+    }
+  ],
+  "application_profiles": [],
+  "network_profiles": [],
+  "persistence_profiles": [
+    {
+      "name": "persist-cookie-web",
+      "uuid": "pp-0001",
+      "persistence_type": "PERSISTENCE_TYPE_HTTP_COOKIE",
+      "persistence_timeout": 1200,
+      "http_cookie_persistence_profile": {
+        "cookie_name": "WEBPERSIST",
+        "always_send_cookie": false
+      }
+    }
+  ],
+  "http_policy_sets": [],
+  "waf_policies": [],
+  "auth_profiles": [],
+  "se_groups": [],
+  "gslb_services": [],
+  "alert_configs": [],
+  "connections": [
+    {
+      "type": "ipam_dns",
+      "name": "Infoblox IPAM",
+      "priority": "HIGH",
+      "detail": {"provider": "infoblox", "action": "Reconfigure VIP lifecycle management"}
+    },
+    {
+      "type": "cloud_openstack",
+      "name": "OpenStack cloud",
+      "priority": "HIGH",
+      "detail": {"provider": "openstack", "action": "Pre-allocate VIPs as fixed IPs"}
+    }
+  ]
+}

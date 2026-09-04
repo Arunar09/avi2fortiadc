@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.tmp/
+state/
+logs/
+reports/
+reports-smoke/
+fortiadc/
+discovery/
+*.jsonl
+*.zip
+config.yaml
+.env
+.pytest_cache
+pytest-cache-files-*/
+docs/old/
+state/rag_index.db
+scratch/
+New fol/

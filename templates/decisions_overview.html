@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block page_header %}{% endblock %}
+{% block content %}
+<div class="card-title">{{ page_title }}</div>
+
+<div class="row">
+  <div class="col-8">
+    <div class="panel mb-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <strong>Manifest status:</strong> 
+          <span class="badge {{ 'badge-green' if manifest.status == 'ready_for_phase' else 'badge-orange' }}">{{ manifest.status.upper() }}</span>
+        </div>
+        <div class="text-mini text-muted">Version: {{ manifest.meta.version }} | Updated: {{ manifest.meta.updated_at }}</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px;">
+      {% for item in gate_sequence %}
+      <div class="stat-card">
+        <div class="text-mini text-muted mb-1 text-uppercase">{{ loop.index }}. {{ item.label }}</div>
+        <div><span class="badge {{ 'badge-green' if item.gate.ok else 'badge-red' }}" style="cursor: help;" title="{{ item.gate.message }}">{{ "PASS" if item.gate.ok else "BLOCKED" }}</span></div>
+        <div class="text-mini text-muted mt-2" style="line-height: 1.2;">{{ item.gate.message }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="panel">
+        <div class="card-title mb-3" style="font-size: 1rem;">Action Center</div>
+        <div class="d-flex gap-2 flex-wrap">
+          <a class="btn {{ 'btn-success' if gate_import.ok else 'btn-primary' }}" href="/decisions/{{ env }}/import-scope">
+            {% if gate_import.ok %}✓{% endif %} 1. Review Import Scope
+          </a>
+          {% if not gate_import.ok %}
+          <form action="/decisions/{{ env }}/import-scope" method="POST" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="confirm_import_scope" value="1">
+            <button type="submit" class="btn btn-warning">Quick Commit Scope &rarr;</button>
+          </form>
+          {% endif %}
+          <a class="btn {{ 'btn-success' if gate_analyse.ok else 'btn-primary' }}" href="/decisions/{{ env }}/analysis-triage">
+            {% if gate_analyse.ok %}✓{% endif %} 2. Analysis Triage
+          </a>
+          <a class="btn {{ 'btn-success' if gate_transform.ok else 'btn-primary' }}" href="/decisions/{{ env }}/transform-approval">
+            {% if gate_transform.ok %}✓{% endif %} 3. Transform Approval
+          </a>
+          <a class="btn {{ 'btn-success' if gate_deploy.ok else 'btn-primary' }}" href="/decisions/{{ env }}/deploy-approval">
+            {% if gate_deploy.ok %}✓{% endif %} 4. Deploy Approval
+          </a>
+          <a class="btn {{ 'btn-success' if gate_verify.ok else 'btn-primary' }}" href="/decisions/{{ env }}/post-validation">
+            {% if gate_verify.ok %}✓{% endif %} 5. Post Validation
+          </a>
+        </div>
+    </div>
+  </div>
+
+  <div class="col-4">
+    <div class="panel h-100">
+        <div class="card-title mb-3" style="font-size: 1rem;">Available Reports</div>
+        {% if reports %}
+        <div class="d-flex flex-column gap-2">
+            {% for report in reports %}
+            <a href="/reports/view/{{ report.filename }}" target="_blank" class="panel hover-effect p-2 d-flex align-items-center justify-content-between" style="text-decoration: none; border: 1px solid rgba(255,255,255,0.05);">
+                <div class="d-flex align-items-center gap-2">
+                    <span style="font-size: 1.2rem;">{{ '📄' if report.extension == 'md' else '🌐' }}</span>
+                    <div>
+                        <div class="text-small text-white" style="font-weight: 600;">{{ report.type }}</div>
+                        <div class="text-mini text-muted">{{ report.filename }}</div>
+                    </div>
+                </div>
+                <div class="text-mini text-muted">{{ report.size_kb }}KB</div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center p-4">
+            <div class="text-muted text-small">No reports generated for this environment yet.</div>
+            <div class="text-mini text-muted mt-1">Complete the Analysis phase to generate.</div>
+        </div>
+        {% endif %}
+        
+        <div class="mt-4 pt-3" style="border-top: 1px solid rgba(255,255,255,0.05);">
+            <div class="text-mini text-muted mb-2">QUICK LINKS</div>
+            <a href="/analytics" class="text-small text-primary d-block mb-1">&gt; Performance Analytics</a>
+            <a href="/kb" class="text-small text-primary d-block">&gt; Migration Knowledge Base</a>
+        </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

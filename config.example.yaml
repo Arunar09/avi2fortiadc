@@ -1,0 +1,109 @@
+# config.example.yaml
+# Avi → FortiADC Migration Tool Configuration
+# Copy to config.yaml and fill in your values.
+# NEVER commit config.yaml — it contains credentials.
+
+# ── Avi / NSX ALB controller ──────────────────────────────────────────────────
+avi:
+  controller:   "https://lb-controller.example.local"     # Avi Controller VIP
+  username:     "admin"
+  password:     ""                              # Set via LB_MIGRATION_SOURCE_PASSWORD env var
+  api_version:  "22.1.5"                        # Match your Avi version
+  verify_ssl:   true
+  timeout:      30
+
+# ── FortiADC ──────────────────────────────────────────────────────────────────
+fortiadc:
+  host:         "https://target-adc.example.local"
+  username:     "admin"
+  password:     ""                              # Set via LB_MIGRATION_TARGET_PASSWORD env var
+  vdom:         "root"                          # Default VDOM
+  verify_ssl:   true
+  timeout:      30
+
+# ── Environments ──────────────────────────────────────────────────────────────
+environments:
+  - name:            "env-a"
+    avi_tenant:      "Tenant-A"
+    fortiadc_vdom:   "vdom-a"
+    priority:        1             # Migrate first — lowest risk
+
+  - name:            "env-b"
+    avi_tenant:      "Tenant-B"
+    fortiadc_vdom:   "vdom-b"
+    priority:        2
+
+  - name:            "env-c"
+    avi_tenant:      "Tenant-C"
+    fortiadc_vdom:   "vdom-c"
+    priority:        3
+
+  - name:            "env-prod-a"
+    avi_tenant:      "Tenant-Prod-A"
+    fortiadc_vdom:   "vdom-prod-a"
+    priority:        4
+
+  - name:            "env-prod-b"
+    avi_tenant:      "Tenant-Prod-B"
+    fortiadc_vdom:   "vdom-prod-b"
+    priority:        5             # Migrate last
+
+# ── Network mapping ───────────────────────────────────────────────────────────
+# Map Avi IPAM subnets to FortiADC network interfaces
+network_map:
+  "10.10.0.0/24": "port1"         # Example — fill with actual subnets
+  "10.10.1.0/24": "port2"
+
+# ── Certificate handling ──────────────────────────────────────────────────────
+certificates:
+  non_exportable_action: "flag"   # flag | skip
+  expire_warning_days:   60
+
+# ── Output paths ──────────────────────────────────────────────────────────────
+output:
+  discovery_dir:  "discovery"
+  reports_dir:    "reports"
+  fortiadc_dir:   "fortiadc"
+  logs_dir:       "logs"
+
+# ── Parallel run (Avi stays live) ─────────────────────────────────────────────
+parallel_run:
+  validation_days_per_env: 7      # Days to validate FortiADC before decommissioning Avi
+  traffic_baseline_hours:  24     # Hours of traffic to baseline before cutover
+
+# ── LLM Gateway (OPTIONAL) ────────────────────────────────────────────────────
+# All LLM calls route through a configurable internal gateway.
+# No direct connections to cloud LLM APIs — data sovereignty enforced.
+#
+# Gateway modes:
+#   opsai   — OpsAI internal Ollama (air-gapped, preferred)
+#             Laptop quick-start: brew install ollama && ollama pull mistral:7b && ollama serve
+#   proxy   — Enterprise HTTP proxy to approved external LLM
+#   apigw   — Internal API Gateway (Kong, AWS APIM, Azure APIM)
+#   disabled — No LLM — tool runs deterministic-only (default)
+#
+# Model recommendations for 12 GB RAM laptop:
+#   llama3.2:3b  — 2 GB, fastest, good for analysis
+#   mistral:7b   — 4 GB, better reasoning, recommended
+#   llama3.1:8b  — 5 GB, best quality
+llm_gateway:
+  enabled:           false                      # Set true to activate
+  mode:              opsai                      # opsai | proxy | apigw | disabled
+  endpoint:          "http://localhost:11434"   # Internal gateway URL ONLY — no cloud
+  model:             "mistral:7b"               # Pull first: ollama pull mistral:7b
+  timeout_seconds:   120
+  max_tokens:        1024
+  temperature:       0.1                        # Low = deterministic output
+  verify_ssl:        true
+  # Proxy mode settings (mode: proxy)
+  proxy_url:         ""                         # e.g. http://squid.internal:3128
+  apigw_key_env:     "LB_MIGRATION_LLM_KEY"        # Env var name — never hardcode key
+  # Compliance settings
+  rate_limit_rpm:    20
+  max_prompt_chars:  8000
+  require_sanitize:  true                       # Always sanitize before sending
+  log_responses:     false                      # Never log raw responses (audit: prompt hash only)
+
+# ── Decision-driven pipeline controls ─────────────────────────────────────────
+decision_driven:
+  enabled: true

@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block page_meta %}
+  <span class="page-meta">
+    {% if summary %}{{ summary.env_count }} env(s) &nbsp;&bull;&nbsp; {{ summary.total_vs }} VS total{% endif %}
+  </span>
+{% endblock %}
+
+{% block content %}
+
+{# ── Env filter ──────────────────────────────────────────────────────────── #}
+<div class="flex flex-gap items-center mb-3">
+  <form method="GET" style="display:flex;gap:8px;align-items:center;">
+    <select name="env" style="min-width:140px;">
+      <option value="">All environments</option>
+      {% for env in envs %}
+        <option value="{{ env }}" {{ 'selected' if selected_env == env }}>{{ env }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-ghost btn-sm" type="submit">Filter</button>
+    {% if selected_env %}
+      <a href="{{ url_for('main.analytics') }}" class="btn btn-ghost btn-sm">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+{# ── Top stats ───────────────────────────────────────────────────────────── #}
+{% if summary %}
+<div class="stat-grid mb-3">
+  <div class="stat-card">
+    <div class="stat-number">{{ summary.total_vs }}</div>
+    <div class="stat-label">Virtual Services</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ summary.total_pools }}</div>
+    <div class="stat-label">Pools</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ summary.total_certs }}</div>
+    <div class="stat-label">Certificates</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:{% if summary.total_blocked > 0 %}#f26e6e{% else %}#3ecf6e{% endif %}">
+      {{ summary.total_blocked }}
+    </div>
+    <div class="stat-label">Blocked</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:#5b9cf6">{{ summary.total_manual }}</div>
+    <div class="stat-label">Manual Items</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:#3ecf6e">{{ summary.env_statuses.deployed }}</div>
+    <div class="stat-label">Deployed</div>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid-2">
+
+  {# ── Compatibility breakdown ──────────────────────────────────────────── #}
+  <div class="card">
+    <div class="card-title">Compatibility Breakdown</div>
+    {% if compat and compat.total > 0 %}
+      {% set total = compat.total %}
+      {% for key, color in [('AUTO','fill-auto'),('WARN','fill-warn'),('MANUAL','fill-manual'),('BLOCKED','fill-blocked')] %}
+      {% set count = compat.get(key, 0) %}
+      <div class="compat-bar-row">
+        <span class="compat-bar-label">{{ key }}</span>
+        <div class="compat-bar-track">
+          <div class="compat-bar-fill {{ color }}"
+               style="width: {{ ((count / total) * 100) | round(1) }}%"></div>
+        </div>
+        <span class="compat-bar-count">{{ count }}</span>
+      </div>
+      {% endfor %}
+      <div class="text-small text-muted mt-2">{{ total }} total objects analysed</div>
+    {% else %}
+      <div class="text-muted text-small">No compatibility data. Run analyse phase first.</div>
+    {% endif %}
+  </div>
+
+  {# ── Environment status matrix ────────────────────────────────────────── #}
+  {% if summary %}
+  <div class="card">
+    <div class="card-title">Environment Status</div>
+    {% for key, label, cls in [
+        ('deployed',    'Deployed',    'badge-green'),
+        ('in_progress', 'In Progress', 'badge-blue'),
+        ('blocked',     'Blocked',     'badge-red'),
+        ('not_started', 'Not Started', 'badge-gray')
+    ] %}
+    <div class="compat-bar-row">
+      <span class="compat-bar-label" style="width:90px;">
+        <span class="badge {{ cls }}">{{ label }}</span>
+      </span>
+      <div class="compat-bar-track">
+        {% set count = summary.env_statuses.get(key, 0) %}
+        {% set total = summary.env_count if summary.env_count > 0 else 1 %}
+        <div class="compat-bar-fill {% if key == 'deployed' %}fill-auto{% elif key == 'in_progress' %}fill-manual{% elif key == 'blocked' %}fill-blocked{% else %}fill-warn{% endif %}"
+             style="width: {{ ((count / total) * 100) | round(0) }}%"></div>
+      </div>
+      <span class="compat-bar-count">{{ summary.env_statuses.get(key, 0) }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+
+{# ── Pattern findings ────────────────────────────────────────────────────── #}
+{% if patterns %}
+<div class="card-title">Technical Pattern Analysis</div>
+<div class="card" style="padding:0;">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Environment</th>
+        <th>Complexity</th>
+        <th>Open Items</th>
+        <th>Item Types</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pf in patterns %}
+      <tr>
+        <td><span class="badge badge-gray">{{ pf.env }}</span></td>
+        <td>
+          {% if pf.complexity is not none %}
+            {% if pf.complexity >= 7 %}
+              <span class="badge badge-red">{{ pf.complexity }}/10</span>
+            {% elif pf.complexity >= 4 %}
+              <span class="badge badge-yellow">{{ pf.complexity }}/10</span>
+            {% else %}
+              <span class="badge badge-green">{{ pf.complexity }}/10</span>
+            {% endif %}
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if pf.open_items > 0 %}
+            <span style="color:#f26e6e">{{ pf.open_items }}</span>
+          {% else %}
+            <span style="color:#3ecf6e">0</span>
+          {% endif %}
+        </td>
+        <td class="text-small text-muted">
+          {{ pf.type_counts.keys() | join(', ') if pf.type_counts else '—' }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{# ── Certificate status ──────────────────────────────────────────────────── #}
+{% if certs %}
+<div class="card-title mt-4">Certificate Status</div>
+<div class="card" style="padding:0;">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Environment</th>
+        <th>Name</th>
+        <th>Subject</th>
+        <th class="text-right">Days Left</th>
+        <th>Exportable</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cert in certs %}
+      <tr>
+        <td><span class="cert-status-{{ cert.status }}">{{ cert.status }}</span></td>
+        <td><span class="badge badge-gray">{{ cert.env }}</span></td>
+        <td class="text-mono">{{ cert.name }}</td>
+        <td class="text-small text-muted">{{ cert.subject }}</td>
+        <td class="text-right">
+          {% if cert.days_left is not none %}
+            <span class="{{ 'cert-status-EXPIRED' if cert.days_left < 0 else 'cert-status-EXPIRING' if cert.days_left < 30 else '' }}">
+              {{ cert.days_left }}
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if cert.exportable %}
+            <span style="color:#3ecf6e">yes</span>
+          {% else %}
+            <span style="color:#f26e6e;font-weight:700;">HSM</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,82 @@
+# tests/docker-compose.yml
+# Full migration pipeline simulation for laptop testing.
+# 12 GB RAM is sufficient — total usage ~2 GB.
+#
+# Usage:
+#   cd tests
+#   docker compose up -d            # start all services
+#   docker compose logs -f          # watch logs
+#   docker compose down             # stop and remove
+#
+# Once running:
+#   python3 migrate.py discover --env dev-b       # hits mock AVI
+#   python3 migrate.py analyse  --input discovery/dev-b.json
+#   python3 migrate.py transform --input discovery/dev-b.json
+#   python3 migrate.py deploy   --fortiadc-config fortiadc/dev-b-config.json \
+#                               --env dev-b --dry-run
+#   python3 migrate.py deploy   --fortiadc-config fortiadc/dev-b-config.json \
+#                               --env dev-b --execute
+#
+# After deploy, inspect what was created in FortiADC:
+#   curl http://localhost:8443/api/load_balance/virtual_server?vdom=DEV-B
+
+version: "3.9"
+
+services:
+
+  # ── Mock AVI Controller ─────────────────────────────────────────────────────
+  mock-avi:
+    build:
+      context: .
+      dockerfile: Dockerfile.mock
+    command: python3 /app/mock_servers/mock_avi_server.py
+    environment:
+      - PORT=8080
+      - AVI_VERSION=22.1.5
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./fixtures:/app/tests/fixtures:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/api/initial-data"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── Mock FortiADC ───────────────────────────────────────────────────────────
+  mock-fortiadc:
+    build:
+      context: .
+      dockerfile: Dockerfile.mock
+    command: python3 /app/mock_servers/mock_fortiadc_server.py
+    environment:
+      - PORT=8443
+    ports:
+      - "8443:8443"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8443/api/system/status"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── Ollama LLM (optional — comment out if not needed) ───────────────────────
+  # Remove # below to enable. Pulls ~2GB model on first run.
+  #ollama:
+  #  image: ollama/ollama:latest
+  #  ports:
+  #    - "11434:11434"
+  #  volumes:
+  #    - ollama_data:/root/.ollama
+  #  command: >
+  #    sh -c "ollama serve &
+  #           sleep 5 &&
+  #           ollama pull llama3.2:3b &&
+  #           wait"
+  #  healthcheck:
+  #    test: ["CMD", "curl", "-sf", "http://localhost:11434/api/tags"]
+  #    interval: 10s
+  #    timeout: 5s
+  #    retries: 20
+
+volumes:
+  ollama_data:

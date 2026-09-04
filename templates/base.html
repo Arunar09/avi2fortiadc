@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ page_title }} | AVI-FortiADC Migration Console{% endblock %}</title>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">Migration Console</div>
+      <div class="sidebar-sub">AVI → FortiADC</div>
+    </div>
+
+    <div class="sidebar-nav">
+      <a href="{{ url_for('main.home') }}"
+         target="_self"
+         class="{{ 'active' if request.endpoint == 'main.home' else '' }}">
+        <span class="nav-icon">&gt;</span> Pipeline
+      </a>
+      <a href="{{ url_for('main.kb') }}"
+         target="_self"
+         class="{{ 'active' if request.endpoint == 'main.kb' else '' }}">
+        <span class="nav-icon">?</span> Knowledge Base
+      </a>
+      <a href="{{ url_for('main.reports') }}"
+         target="_self"
+         class="{{ 'active' if request.endpoint == 'main.reports' else '' }}">
+        <span class="nav-icon">#</span> Reports
+      </a>
+      <a href="{{ url_for('main.analytics') }}"
+         target="_self"
+         class="{{ 'active' if request.endpoint == 'main.analytics' else '' }}">
+        <span class="nav-icon">~</span> Analytics
+      </a>
+      <a href="{{ url_for('main.import_config') }}"
+         target="_self"
+         class="{{ 'active' if request.endpoint == 'main.import_config' else '' }}">
+        <span class="nav-icon">+</span> Import
+      </a>
+      
+      {% if current_user.has_role('admin') %}
+      <a href="{{ url_for('main.admin_users') }}"
+         target="_self"
+         class="{{ 'active' if request.endpoint == 'main.admin_users' else '' }}">
+        <span class="nav-icon">@</span> User Management
+      </a>
+      {% endif %}
+      
+      <a href="{{ url_for('main.logout') }}" target="_self">
+        <span class="nav-icon">←</span> Logout
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="text-mini text-muted mb-1">{{ current_user.username }} ({{ current_user.role }})</div>
+      v0.8 &nbsp;|&nbsp; Air-gapped
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main-content">
+
+    {% if errors %}
+      {% for err in errors %}
+        <div class="alert alert-error">Service error: {{ err }}</div>
+      {% endfor %}
+    {% endif %}
+
+    {% block page_header %}
+    <div class="page-header">
+      <span class="page-title">{{ page_title }}</span>
+      {% block page_meta %}{% endblock %}
+    </div>
+    {% endblock %}
+
+    {% block content %}{% endblock %}
+
+  </main>
+</div>
+
+<!-- Nerved AI Expert Drawer -->
+<div class="ai-drawer-overlay" id="ai-drawer-overlay" onclick="closeAIDrawer()"></div>
+<div class="ai-drawer" id="ai-drawer">
+  <div class="ai-drawer-header">
+    <div class="d-flex align-items-center gap-3">
+      <div class="ai-spark-icon">✨</div>
+      <div>
+        <div class="ai-drawer-title">Expert Migration Insight</div>
+        <div class="ai-drawer-subtitle" id="ai-context-label">Repository & Environment Awareness</div>
+      </div>
+    </div>
+    <button class="ai-drawer-close" onclick="closeAIDrawer()">&times;</button>
+  </div>
+
+  <div class="ai-drawer-content" id="ai-drawer-messages">
+    <!-- Messages appear here -->
+  </div>
+
+  <div class="ai-drawer-footer">
+    <div class="ai-drawer-input-wrapper">
+      <input type="text" id="ai-drawer-input" placeholder="Ask follow-up..." onkeypress="handleAIDrawerKey(event)">
+      <button onclick="sendAIDrawerMessage()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Insight Modal -->
+<div class="ai-quick-overlay" id="ai-quick-overlay" onclick="closeQuickInsight()"></div>
+<div class="ai-quick-card" id="ai-quick-card">
+  <div class="ai-quick-header">
+    <div class="d-flex align-items-center gap-2">
+      <div class="ai-spark-icon" style="font-size: 1.2rem;">✨</div>
+      <span class="fw-bold" style="font-size: 0.9rem;">Expert Insight</span>
+    </div>
+    <button class="ai-drawer-close" style="width: 24px; height: 24px; font-size: 14px;" onclick="closeQuickInsight()">&times;</button>
+  </div>
+  <div class="ai-quick-body" id="ai-quick-content">
+    <div class="text-center p-4">
+      <div class="spinner-border spinner-border-sm text-primary mb-2"></div>
+      <div class="text-mini text-muted">Consulting Migration Knowledge Base...</div>
+    </div>
+  </div>
+  <div class="ai-quick-footer" id="ai-quick-actions" style="display: none;">
+    <button class="ai-action-btn w-100 mb-2" id="btn-save-quick" style="border-radius: 8px; padding: 10px;">
+      ✅ Save to Knowledge Base
+    </button>
+    <button class="btn btn-mini btn-ghost w-100" id="btn-followup-quick" style="font-size: 0.75rem;">
+      Ask follow-up in Interactive Chat →
+    </button>
+  </div>
+</div>
+
+<style>
+  :root {
+    --ai-primary: #61afef;
+    --ai-accent: #c678dd;
+    --ai-bg: rgba(40, 44, 52, 0.85);
+    --ai-glass: rgba(255, 255, 255, 0.03);
+    --ai-border: rgba(255, 255, 255, 0.1);
+  }
+
+  .ai-drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: none;
+    animation: fade-in 0.3s ease;
+  }
+
+  .ai-drawer {
+    position: fixed;
+    top: 0;
+    right: -450px;
+    width: 450px;
+    height: 100vh;
+    background: var(--ai-bg);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border-left: 1px solid var(--ai-border);
+    box-shadow: -20px 0 50px rgba(0,0,0,0.5);
+    z-index: 2001;
+    display: flex;
+    flex-direction: column;
+    transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ai-drawer.open { right: 0; }
+
+  .ai-drawer-header {
+    padding: 24px;
+    background: linear-gradient(to bottom, rgba(97, 175, 239, 0.05), transparent);
+    border-bottom: 1px solid var(--ai-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .ai-spark-icon {
+    font-size: 24px;
+    background: linear-gradient(135deg, var(--ai-primary), var(--ai-accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 8px rgba(97, 175, 239, 0.5));
+  }
+
+  .ai-drawer-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+
+  .ai-drawer-subtitle {
+    font-size: 0.75rem;
+    color: #abb2bf;
+    opacity: 0.8;
+  }
+
+  .ai-drawer-close {
+    background: var(--ai-glass);
+    border: 1px solid var(--ai-border);
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .ai-drawer-close:hover { background: rgba(255,255,255,0.1); transform: rotate(90deg); }
+
+  .ai-drawer-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ai-border) transparent;
+  }
+
+  .ai-msg {
+    max-width: 90%;
+    padding: 16px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    animation: slide-up 0.3s ease;
+  }
+
+  @keyframes slide-up { from { opacity: 0; transform: translateY(10px); } }
+
+  .ai-msg.assistant {
+    background: var(--ai-glass);
+    border: 1px solid var(--ai-border);
+    color: #cbd5e0;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+
+  .ai-msg.user {
+    background: var(--ai-primary);
+    color: #1a1e26;
+    align-self: flex-end;
+    font-weight: 500;
+    border-bottom-right-radius: 4px;
+  }
+
+  .ai-msg.verified {
+    border-color: #98c379;
+    background: rgba(152, 195, 121, 0.05);
+  }
+
+  .ai-msg-header {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    opacity: 0.6;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .ai-verified-badge {
+    color: #98c379;
+    font-weight: 700;
+  }
+
+  .ai-action-btn {
+    margin-top: 12px;
+    background: var(--ai-glass);
+    border: 1px solid var(--ai-border);
+    color: var(--ai-primary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .ai-action-btn:hover { background: var(--ai-primary); color: #1a1e26; }
+
+  .ai-drawer-footer {
+    padding: 24px;
+    background: rgba(0,0,0,0.2);
+    border-top: 1px solid var(--ai-border);
+  }
+
+  .ai-drawer-input-wrapper {
+    display: flex;
+    gap: 12px;
+    background: var(--ai-glass);
+    border: 1px solid var(--ai-border);
+    border-radius: 12px;
+    padding: 4px 4px 4px 16px;
+  }
+
+  .ai-drawer-input-wrapper input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 0.9rem;
+    outline: none;
+    padding: 8px 0;
+  }
+
+  .ai-drawer-input-wrapper button {
+    background: var(--ai-primary);
+    color: #1a1e26;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+  /* Utility Trigger */
+  .ai-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--ai-glass);
+    border: 1px solid var(--ai-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    margin-left: 8px;
+  }
+  .ai-trigger:hover {
+    background: var(--ai-primary);
+    transform: scale(1.1);
+  }
+
+  /* Quick Card Styling */
+  .ai-quick-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1900;
+    display: none;
+    background: rgba(0,0,0,0.2);
+    backdrop-filter: blur(2px);
+  }
+  .ai-quick-card {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    width: 400px;
+    max-height: 80vh;
+    background: var(--ai-bg);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--ai-border);
+    border-radius: 16px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+    z-index: 1901;
+    display: none;
+    flex-direction: column;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ai-quick-card.open {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .ai-quick-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ai-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .ai-quick-body {
+    padding: 20px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #cbd5e0;
+  }
+  .ai-quick-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--ai-border);
+    background: rgba(0,0,0,0.1);
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+  }
+</style>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <style>
+    /* Toast Styling */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .toast {
+      min-width: 280px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      background: #282c34;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: toast-in 0.3s ease forwards;
+      transition: all 0.3s ease;
+    }
+    .toast-success { border-left: 4px solid #98c379; }
+    .toast-error { border-left: 4px solid #e06c75; }
+    .toast-info { border-left: 4px solid #61afef; }
+    .toast-icon { font-size: 1.2rem; }
+    .toast-content { flex: 1; font-size: 0.9rem; }
+    .toast-close { cursor: pointer; opacity: 0.5; }
+    .toast-close:hover { opacity: 1; }
+
+    @keyframes toast-in {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes toast-out {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+  </style>
+
+  <script>
+      // Global showToast definition
+      window.showToast = function(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+        toast.innerHTML = `
+          <div class="toast-icon">${icons[type] || '🔔'}</div>
+          <div class="toast-content">${message}</div>
+          <div class="toast-close" onclick="this.parentElement.remove()">&times;</div>
+        `;
+
+        container.appendChild(toast);
+        setTimeout(() => {
+          toast.style.animation = 'toast-out 0.3s ease forwards';
+          setTimeout(() => toast.remove(), 300);
+        }, 5000);
+      };
+  </script>
+
+  <!-- Flash Message JSON Bridge -->
+  <script id="flash-data" type="application/json">
+    {{ get_flashed_messages(with_categories=true)|tojson }}
+  </script>
+
+  <script>
+      (function() {
+        window.addEventListener('DOMContentLoaded', () => {
+          const dataEl = document.getElementById('flash-data');
+          if (!dataEl) return;
+          try {
+            const messages = JSON.parse(dataEl.textContent);
+            if (messages && messages.length > 0) {
+              messages.forEach(([category, msg]) => {
+                const type = category === 'success' ? 'success' : (category === 'error' ? 'error' : 'info');
+                if (window.showToast) window.showToast(msg, type);
+              });
+            }
+          } catch (e) {
+            console.error('Flash message parse error:', e);
+          }
+        });
+      })();
+  </script>
+
+<script>
+  let currentEnv = '';
+  let currentHistory = [];
+  let lastQuickInsight = { query: '', answer: '' };
+
+  function openAIDrawer(query = '', env = '') {
+    currentEnv = env || currentEnv;
+    document.getElementById('ai-drawer-overlay').style.display = 'block';
+    document.getElementById('ai-drawer').classList.add('open');
+    document.getElementById('ai-context-label').textContent = currentEnv ? `Context: ${currentEnv.toUpperCase()}` : 'General Repository Expert';
+    
+    if (query) {
+      appendDrawerMessage('user', query);
+      triggerInsight(query);
+    }
+  }
+
+  function closeAIDrawer() {
+    document.getElementById('ai-drawer-overlay').style.display = 'none';
+    document.getElementById('ai-drawer').classList.remove('open');
+  }
+
+  async function openQuickInsight(query, env = '') {
+    currentEnv = env || currentEnv;
+    const overlay = document.getElementById('ai-quick-overlay');
+    const card = document.getElementById('ai-quick-card');
+    const body = document.getElementById('ai-quick-content');
+    const actions = document.getElementById('ai-quick-actions');
+    
+    overlay.style.display = 'block';
+    card.style.display = 'flex';
+    setTimeout(() => card.classList.add('open'), 10);
+    
+    // Reset state
+    body.innerHTML = `
+      <div class="text-center p-4">
+        <div class="spinner-border spinner-border-sm text-primary mb-2"></div>
+        <div class="text-mini text-muted">Consulting Migration Knowledge Base...</div>
+      </div>
+    `;
+    actions.style.display = 'none';
+
+    try {
+      const resp = await fetch('/api/ai/insight', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({ query: query, env: currentEnv })
+      });
+      const data = await resp.json();
+      
+      lastQuickInsight = { query: query, answer: data.answer };
+      
+      body.innerHTML = `
+        <div class="ai-msg-header mb-2" style="font-size: 0.65rem;">
+          QUERY: ${query.length > 50 ? query.substring(0, 47) + '...' : query}
+          ${data.verified ? '<span class="ai-verified-badge ms-auto">✨ VERIFIED</span>' : ''}
+        </div>
+        <div class="ai-insight-text">${formatContent(data.answer)}</div>
+      `;
+      
+      actions.style.display = 'block';
+      
+      // Hook up actions
+      document.getElementById('btn-save-quick').onclick = () => saveToKB('Verified Insight', data.answer, 'quick');
+      document.getElementById('btn-followup-quick').onclick = () => {
+        closeQuickInsight();
+        currentHistory = [
+          { role: 'user', content: query },
+          { role: 'assistant', content: data.answer }
+        ];
+        openAIDrawer();
+        // Re-render history in drawer
+        const msgContainer = document.getElementById('ai-drawer-messages');
+        msgContainer.innerHTML = '';
+        appendDrawerMessage('user', query);
+        appendDrawerMessage('assistant', data.answer, false, data.verified, data.mode);
+      };
+      
+    } catch (err) {
+      body.innerHTML = `<div class="alert alert-error">Insight Engine Unreachable</div>`;
+    }
+  }
+
+  function closeQuickInsight() {
+    const card = document.getElementById('ai-quick-card');
+    card.classList.remove('open');
+    setTimeout(() => {
+      card.style.display = 'none';
+      document.getElementById('ai-quick-overlay').style.display = 'none';
+    }, 300);
+  }
+
+  function handleAIDrawerKey(e) {
+    if (e.key === 'Enter') sendAIDrawerMessage();
+  }
+
+  async function triggerInsight(query) {
+    const container = document.getElementById('ai-drawer-messages');
+    const thinkingId = appendDrawerMessage('assistant', 'Consulting knowledge base...', true);
+    
+    try {
+      const resp = await fetch('/api/ai/insight', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({ query: query, env: currentEnv })
+      });
+      const data = await resp.json();
+      document.getElementById(thinkingId).remove();
+
+      appendDrawerMessage('assistant', data.answer, false, data.verified, data.mode);
+      
+      // Update local history
+      currentHistory.push({ role: 'user', content: query });
+      currentHistory.push({ role: 'assistant', content: data.answer });
+    } catch (err) {
+      document.getElementById(thinkingId).remove();
+      appendDrawerMessage('assistant', 'Failed to reach memory engine.');
+    }
+  }
+
+  async function sendAIDrawerMessage() {
+    const input = document.getElementById('ai-drawer-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    input.value = '';
+    appendDrawerMessage('user', msg);
+    
+    const thinkingId = appendDrawerMessage('assistant', 'Thinking...', true);
+
+    try {
+      const resp = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+          message: msg,
+          history: currentHistory,
+          env: currentEnv
+        })
+      });
+      const data = await resp.json();
+      document.getElementById(thinkingId).remove();
+
+      appendDrawerMessage('assistant', data.answer, false, data.verified, data.mode);
+      currentHistory = data.history || [];
+    } catch (err) {
+      document.getElementById(thinkingId).remove();
+      appendDrawerMessage('assistant', 'Connection error.');
+    }
+  }
+
+  function appendDrawerMessage(role, content, thinking = false, verified = false, mode = 'rag+llm') {
+    const container = document.getElementById('ai-drawer-messages');
+    const div = document.createElement('div');
+    const id = 'drawer-msg-' + Date.now();
+    div.id = id;
+    div.className = `ai-msg ${role} ${thinking ? 'thinking' : ''} ${verified ? 'verified' : ''}`;
+    
+    let label = role === 'user' ? 'Operator' : 'AI Expert';
+    if (role === 'assistant' && mode === 'rag-only') label = 'Knowledge Retrieval';
+
+    let html = `
+      <div class="ai-msg-header">
+        <span>${label}</span>
+        ${verified ? '<span class="ai-verified-badge">✨ VERIFIED EXPERIENCE</span>' : ''}
+        ${mode === 'rag-only' && role === 'assistant' && !thinking ? '<span class="badge badge-gray ms-1" style="font-size:0.55rem; opacity:0.6;">LOCAL ONLY</span>' : ''}
+      </div>
+      <div class="ai-msg-body">${formatContent(content)}</div>
+    `;
+
+    if (role === 'assistant' && !thinking) {
+      // Use hidden data storage to avoid fragile string interpolation in HTML attributes
+      const storageId = `content-${id}`;
+      const storage = document.createElement('script');
+      storage.id = storageId;
+      storage.type = 'application/json';
+      storage.textContent = JSON.stringify({ content: content });
+      document.body.appendChild(storage);
+      
+      html += `<button class="ai-action-btn" onclick="saveToKBFromRef('${storageId}')">✅ Save to Knowledge Base</button>`;
+    }
+
+    div.innerHTML = html;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return id;
+  }
+
+  function formatContent(text) {
+    if (!text) return '';
+    
+    // 1. Code blocks
+    let html = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+    
+    // 2. Headings (###)
+    html = html.replace(/^### (.*$)/gim, '<h4 style="margin-top:10px; margin-bottom:5px; color:var(--text-bright); border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:3px;">$1</h4>');
+    
+    // 3. Bold (**text**)
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // 4. Horizontal Rule (---)
+    html = html.replace(/^---$/gm, '<hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:10px 0;">');
+    
+    // 5. Lists (- item)
+    html = html.replace(/^\s*-\s+(.*$)/gim, '<div style="display:flex; gap:8px; margin-bottom:4px;"><span style="color:var(--primary-glow);">•</span><span>$1</span></div>');
+    
+    // 6. Numbered Lists (1. item)
+    html = html.replace(/^\s*\d+\.\s+(.*$)/gim, '<div style="display:flex; gap:8px; margin-bottom:4px; font-weight:500;"><span style="color:var(--text-muted);">$0</span></div>');
+    
+    // 7. GitHub-style alerts (> [!NOTE])
+    html = html.replace(/^>\s+\[!NOTE\]\n>\s+(.*$)/gim, '<div class="alert alert-info" style="font-size:0.7rem; padding:8px; margin-top:10px;"><strong>NOTE:</strong> $1</div>');
+    
+    // 8. Newlines to <br> (only if not inside a list/heading/code)
+    return html.replace(/\n/g, '<br>');
+  }
+
+  function saveToKBFromRef(storageId) {
+    const data = JSON.parse(document.getElementById(storageId).textContent);
+    saveToKB('Verified Insight', data.content);
+  }
+
+  async function saveToKB(title, content, source = 'drawer') {
+    const btn = source === 'quick' ? document.getElementById('btn-save-quick') : null;
+    const originalText = btn ? btn.innerHTML : '';
+    
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving & Indexing...';
+    }
+
+    try {
+      const resp = await fetch('/api/ai/save-experience', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({ title: title, content: content, tags: [currentEnv, 'verified'] })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        if (btn) {
+          btn.innerHTML = '✨ Saved & Indexed';
+          btn.style.borderColor = '#98c379';
+          btn.style.color = '#98c379';
+        } else {
+          showToast('Insight saved & indexed!', 'success');
+        }
+      } else {
+        throw new Error(data.error || 'Save failed');
+      }
+    } catch (err) {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+      showToast('Failed to save experience: ' + err.message, 'error');
+    }
+  }
+</script>
+
+  <!-- Global Delete System -->
+  <form id="global-delete-form" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  </form>
+
+  <!-- Custom Confirmation Modal (Bypasses IDE Preview Blocks) -->
+  <div id="custom-confirm-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: #1a1d27; border: 1px solid #e74c3c; border-radius: 8px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+      <h3 style="color: #e74c3c; margin-top: 0; display: flex; align-items: center; gap: 8px;">
+        ⚠️ Confirm Deletion
+      </h3>
+      <p style="color: #e2e4ed; margin-bottom: 24px; font-size: 0.95rem; line-height: 1.5;" id="custom-confirm-message">
+        Are you sure you want to delete this environment?
+      </p>
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button id="custom-confirm-cancel" class="btn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #e2e4ed; padding: 6px 16px;">Cancel</button>
+        <button id="custom-confirm-proceed" class="btn btn-danger" style="padding: 6px 16px;">Delete Permanently</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * Bulletproof global delete handler using event delegation.
+     * Uses a custom HTML modal to avoid IDE Preview auto-cancelling confirm() dialogs.
+     */
+    let pendingDeleteEnv = null;
+    const confirmOverlay = document.getElementById('custom-confirm-overlay');
+    const confirmMessage = document.getElementById('custom-confirm-message');
+    const confirmProceed = document.getElementById('custom-confirm-proceed');
+    const confirmCancel = document.getElementById('custom-confirm-cancel');
+
+    // 1. Intercept Deletion Clicks
+    document.addEventListener('click', function(event) {
+      const deleteBtn = event.target.closest('[data-delete-env]');
+      if (!deleteBtn) return;
+      
+      event.preventDefault();
+      event.stopPropagation();
+      
+      pendingDeleteEnv = deleteBtn.getAttribute('data-delete-env');
+      confirmMessage.textContent = `PERMANENTLY DELETE environment '${pendingDeleteEnv}' and all its artifacts? This cannot be undone.`;
+      confirmOverlay.style.display = 'flex';
+      
+    }, true); // Use capture phase to intercept before bubbles start
+
+    // 2. Handle Proceed
+    confirmProceed.addEventListener('click', function() {
+      if (!pendingDeleteEnv) return;
+      console.log(`[UI] Custom modal confirmed for ${pendingDeleteEnv}. Redirecting...`);
+      const form = document.getElementById('global-delete-form');
+      form.action = `/env/delete/${pendingDeleteEnv}`;
+      confirmOverlay.style.display = 'none';
+      form.submit();
+    });
+
+    // 3. Handle Cancel
+    confirmCancel.addEventListener('click', function() {
+      console.log(`[UI] Custom modal cancelled for: ${pendingDeleteEnv}`);
+      pendingDeleteEnv = null;
+      confirmOverlay.style.display = 'none';
+    });
+  </script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

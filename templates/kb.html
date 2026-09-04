@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block page_meta %}
+  <span class="page-meta">
+    {% if summary %}{{ summary.doc_count }} docs &nbsp;&bull;&nbsp; {{ summary.resolved_items }} learned patterns{% endif %}
+  </span>
+{% endblock %}
+
+{% block content %}
+
+{# ── Search ──────────────────────────────────────────────────────────────── #}
+<form method="GET" class="search-bar">
+  <input type="text" name="q" value="{{ search }}"
+         placeholder="Search docs, object types, migration notes..."
+         style="max-width: 440px;">
+  <button type="submit" class="btn btn-primary btn-sm">Search</button>
+  {% if search %}
+    <a href="{{ url_for('main.kb') }}" class="btn btn-ghost btn-sm">Clear</a>
+  {% endif %}
+</form>
+
+{# ── Summary strip ───────────────────────────────────────────────────────── #}
+{% if summary %}
+<div class="stat-grid mb-3">
+  <div class="stat-card">
+    <div class="stat-number">{{ summary.doc_count }}</div>
+    <div class="stat-label">Docs</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ summary.resolved_items }}</div>
+    <div class="stat-label">Learned</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ summary.featured_count }}</div>
+    <div class="stat-label">Featured</div>
+  </div>
+</div>
+{% endif %}
+
+{# ── Results ─────────────────────────────────────────────────────────────── #}
+<div class="card-title">
+  {% if search %}Results for &quot;{{ search }}&quot; ({{ entries | length }}){% else %}All Entries{% endif %}
+</div>
+
+{% if entries %}
+  {% for entry in entries %}
+  <div class="kb-entry">
+    <div class="kb-entry-title">
+      {% if entry.source == 'docs' %}
+        <a href="#">{{ entry.title }}</a>
+      {% else %}
+        {{ entry.title }}
+      {% endif %}
+      <span class="kb-tag">{{ entry.tag }}</span>
+      {% if entry.source == 'migration_learning' %}
+        <span class="kb-tag" style="background:#1a2a1a;color:#3ecf6e;border-color:#1d4a2e;">learned</span>
+      {% endif %}
+    </div>
+    {% if entry.excerpt %}
+    <div class="kb-entry-excerpt">{{ entry.excerpt }}</div>
+    {% endif %}
+    {% if entry.source == 'docs' %}
+    <div class="text-small text-muted mt-1">
+      <code>docs/{{ entry.filename }}</code>
+    </div>
+    {% elif entry.source == 'migration_learning' %}
+    <div class="text-small text-muted mt-1">
+      Resolved by {{ entry.resolved_by or 'unknown' }}
+      {% if entry.resolved_at %}&mdash; {{ entry.resolved_at[:10] }}{% endif %}
+      &mdash; env: {{ entry.env }}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="panel text-muted">
+    {% if search %}
+      No results for &quot;{{ search }}&quot;. Try a broader term.
+    {% else %}
+      No knowledge base entries found. Ensure <code>docs/</code> directory exists
+      and migration phases have been run to generate learning entries.
+    {% endif %}
+  </div>
+{% endif %}
+
+{% endblock %}

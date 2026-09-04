@@ -1,0 +1,19 @@
+# requirements.txt — Avi → FortiADC Migration Tool
+# Minimal dependencies. No LLM. No cloud. No framework.
+# Air-gap install: pip install --no-index --find-links vendor/ -r requirements.txt
+
+requests>=2.31.0,<3       # HTTP client for Avi + FortiADC API
+flask>=3.0.0               # Web interface
+pyyaml>=6.0,<7            # Config file parsing
+urllib3>=1.26,<3           # Bundled with requests, explicit for pinning
+certifi>=2024.0            # CA certificates for SSL
+
+# ── Testing (bundled — no internet needed in air-gapped env) ──────
+pytest>=7.4,<9             # Test runner
+pytest-mock>=3.11,<4       # Mock fixtures for unit tests
+
+# ── Authentication & Identity ─────────────────────────────────────
+flask-login>=0.6.3         # Session management
+flask-sqlalchemy>=3.1.1    # Local identity store (SQLite)
+bcrypt>=4.1.2               # Secure password hashing
+flask-wtf>=1.2.1           # CSRF protection

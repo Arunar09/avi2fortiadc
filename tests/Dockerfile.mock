@@ -1,0 +1,6 @@
+FROM python:3.11-slim
+WORKDIR /app
+COPY mock_servers/ /app/mock_servers/
+COPY fixtures/ /app/tests/fixtures/
+RUN pip install flask --quiet
+EXPOSE 8080 8443

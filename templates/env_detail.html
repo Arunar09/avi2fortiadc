@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="page-title mb-1">{{ page_title }}</h1>
+        <div class="text-mini text-muted">
+            <a href="/" class="text-info">Pipeline</a> / {{ env.name }}
+        </div>
+    </div>
+    <div>
+        <button type="button" class="btn btn-danger btn-sm" data-delete-env="{{ env.name }}">
+            🗑 Delete Environment
+        </button>
+    </div>
+</div>
+
+<div class="grid-3 mb-4">
+    {# ── Status Summary ── #}
+    <div class="card bg-dark text-center">
+        <div class="card-title text-info small mb-3">Health Status</div>
+        <div class="py-3">
+            {% if env.blocked %}
+                <div class="stat-number text-red">✖</div>
+                <span class="badge badge-red">Blocked</span>
+            {% elif env.current_phase %}
+                <div class="stat-number text-info spin">⟳</div>
+                <span class="badge badge-blue">In Progress</span>
+            {% else %}
+                <div class="stat-number text-white">✔</div>
+                <span class="badge badge-gray">Completed</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card bg-dark">
+        <div class="card-title text-info small mb-3">Asset Inventory</div>
+        <div class="d-flex flex-column gap-2 mt-2">
+            <div class="d-flex justify-content-between border-bottom border-secondary border-opacity-10 pb-1">
+                <span class="text-muted text-mini uppercase">Virtual Services</span>
+                <span class="font-bold">{{ env.counts.virtual_services if env.counts else 0 }}</span>
+            </div>
+            <div class="d-flex justify-content-between border-bottom border-secondary border-opacity-10 pb-1">
+                <span class="text-muted text-mini uppercase">Pools</span>
+                <span class="font-bold">{{ env.counts.pools if env.counts else 0 }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-muted text-mini uppercase">Manual Items</span>
+                <span class="font-bold {{ 'text-yellow' if env.unsupported_open > 0 else '' }}">
+                    {{ env.unsupported_open }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-dark d-flex align-items-center justify-content-center">
+        <a href="/kb" class="btn btn-ghost w-100 py-3">
+            ? Knowledge Search
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-secondary border-opacity-50">
+    <div class="card-title d-flex justify-content-between align-items-center">
+        <span>Progress Timeline</span>
+        <span class="text-mini text-muted normal-case">{{ history | length }} events</span>
+    </div>
+
+    <div class="card-body p-2 mt-2">
+        {% if history %}
+            <div class="timeline">
+                {% for event in history | reverse %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker {{ 'marker-active' if loop.first else '' }}"></div>
+                        <div class="timeline-content animate-fade-in">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <span class="text-info font-bold uppercase text-mini tracking-wider">{{ event.phase }}</span>
+                                <span class="text-mini text-muted">{{ event.timestamp[:19].replace('T', ' ') }}</span>
+                            </div>
+                            <div class="font-bold text-white mb-2">{{ event.action.replace('_', ' ') }}</div>
+                            
+                            {% if event.detail %}
+                                <div class="panel border-secondary border-opacity-25 bg-secondary bg-opacity-5 p-2 small mb-2">
+                                    {% if event.detail.notes %}
+                                        <div class="text-muted italic">"{{ event.detail.notes }}"</div>
+                                    {% endif %}
+                                    {% if event.detail.reason %}
+                                        <div class="text-red mt-1">Reason: {{ event.detail.reason }}</div>
+                                    {% endif %}
+                                    {% if event.detail.counts %}
+                                        <div class="mt-2 d-flex gap-2 flex-wrap">
+                                            {% for k, v in event.detail.counts.items() %}
+                                                <span class="badge border border-secondary text-mini tracking-tight">{{ k }}: {{ v }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            <div class="text-mini text-muted">
+                                Operator: <span class="text-white">{{ event.operator }}</span>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5 text-muted">
+                <div class="stat-number opacity-25 mb-3">∅</div>
+                No history recorded for this environment.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .normal-case { text-transform: none !important; }
+    .font-bold { font-weight: 700; }
+    .italic { font-style: italic; }
+    .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
+</style>
+{% endblock %}

@@ -139,3 +139,12 @@ No other files need changing.
 - `requests`, `pyyaml` (bundled in `vendor/` for air-gapped install)
 - Optional: Docker (for local test environment with mock servers)
 - Optional: Ollama (for local LLM advisory via OpsAI mode)
+
+---
+
+## License
+
+This project is licensed under the **Apache License 2.0** - see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2026 Arunar09
+

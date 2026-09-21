@@ -13,7 +13,7 @@
 | **Read-only on source** | The AVI client has no write methods. The tool cannot modify AVI at any point. |
 | **Audit everything** | Every operation is logged with operator identity, timestamp, and SHA-256 hash chain. |
 | **Dry-run default** | Live deployment requires explicit `--execute` flag and governance gate. |
-| **Idempotent deployment** | Deploy checks object existence before create. Re-running is always safe. |
+| **Idempotent deployment** | Deploy checks object existence before create and supports update-on-repeat. Complete idempotency and preservation of unrelated target configuration must be validated against the target release/configuration. |
 
 ---
 

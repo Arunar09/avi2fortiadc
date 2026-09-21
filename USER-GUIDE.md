@@ -5,6 +5,10 @@
 
 ## 1. Prerequisites
 
+### 1.0 First-run operator-console security
+
+The web operator console does not create a universal default account. On a new identity database, set `MIGRATION_BOOTSTRAP_ADMIN_PASSWORD` (minimum 12 characters) before starting the console. Set `FLASK_SECRET_KEY` to a high-entropy value of at least 32 characters. Existing identity databases are not modified by this bootstrap path.
+
 Before running the tool, ensure the following are in place.
 
 ### 1.1 System requirements
@@ -75,13 +79,13 @@ chmod 600 config.yaml      # credentials file — restrict permissions
 avi:
   controller:   "https://avi-controller.company-name.local"
   username:     "svc-migration-reader"
-  password:     ""           # Set here or via MIGRATION_AVI_PASSWORD env var
+  password:     ""           # Set here or via LB_MIGRATION_SOURCE_PASSWORD env var
   api_version:  "22.1.5"
 
 fortiadc:
   host:         "https://fortiadc.company-name.local"
   username:     "svc-migration-writer"
-  password:     ""           # Set here or via MIGRATION_FORTIADC_PASSWORD env var
+  password:     ""           # Set here or via LB_MIGRATION_TARGET_PASSWORD env var
   vdom:         "root"
 
 environments:

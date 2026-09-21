@@ -13,7 +13,7 @@ to FortiADC — safely, auditably, and without requiring any LLM or internet con
 | **Discovery** | Reads all AVI configuration via read-only REST API. Builds a complete dependency graph including runtime health state. |
 | **Analysis** | Classifies every object as AUTO / WARN / MANUAL / BLOCKED. Runs 8 deterministic risk pattern detectors. Scores overall migration complexity 1–10. |
 | **Transformation** | Translates AVI API payloads to FortiADC REST API format. All mappings are explicit, auditable lookup tables — no inference. |
-| **Deployment** | Deploys to FortiADC in dependency order. Idempotent — safe to re-run. Dry-run by default. Governance-gated for live execution. |
+| **Deployment** | Deploys supported objects to FortiADC in dependency order. Includes existence/update handling and dry-run by default; complete idempotency must be validated against the target release/configuration. |
 | **Validation** | Pre-deployment reachability and conflict checks. Post-deployment health verification. Field-level config drift detection. |
 | **Offline RAG** | SQLite-backed knowledge base with TF-IDF + BM25 retrieval. Query docs, migration learnings, and object mappings without internet. |
 | **LLM Advisory** | Optional, modular, advisory-only. Routes through an internal gateway — no direct cloud API connections. Disable with one config line. |
@@ -90,7 +90,7 @@ python3 migrate.py audit cef        --log logs/Tenant-Dev-B-deploy.jsonl --outpu
 | `discovery/<env>.json` | Complete AVI config snapshot — raw, unmodified |
 | `reports/<env>-analysis.html` | Human-readable migration analysis report |
 | `reports/<env>-analysis.md` | Markdown version for Change Request attachment |
-| `reports/<env>-sanitized.txt` | Sanitized pack — safe to paste into any LLM |
+| `reports/<env>-sanitized.txt` | Sanitized pack for external analysis; review before sharing outside the approved environment |
 | `fortiadc/<env>-config.json` | FortiADC API payloads — ready to deploy |
 | `state/<env>-ledger.json` | Phase state, unsupported items, audit trail |
 | `state/<env>-governance.json` | Change Request and approval records |
@@ -125,13 +125,24 @@ No other files need changing.
 
 ## Documentation
 
+Start with [docs/INDEX.md](docs/INDEX.md), the canonical documentation map.
+
 | Document | Purpose |
 |---|---|
-| [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md) | Complete installation and usage guide |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Technical architecture, RAG design, data model |
-| [`docs/SECURITY.md`](docs/SECURITY.md) | Security controls, sanitization, credential handling |
+| [docs/00-PRODUCT-OVERVIEW.md](docs/00-PRODUCT-OVERVIEW.md) | Scope, lifecycle and capability boundaries |
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Installation and complete operator workflow |
+| [docs/OBJECT-MAPPING-MATRIX.md](docs/OBJECT-MAPPING-MATRIX.md) | Current object-family handling |
+| [docs/UNSUPPORTED-FEATURES.md](docs/UNSUPPORTED-FEATURES.md) | Manual and blocked feature policy |
+| [docs/ENVIRONMENT-DEPENDENCIES.md](docs/ENVIRONMENT-DEPENDENCIES.md) | OpenStack, Contrail, Infoblox and DNS dependencies |
+| [docs/SECURITY.md](docs/SECURITY.md) | Security controls and data handling |
+| [docs/QUALIFICATION.md](docs/QUALIFICATION.md) | Evidence and release-gate method |
+| [qualification/QUALIFICATION-MATRIX.md](qualification/QUALIFICATION-MATRIX.md) | Authoritative current qualification status |
 
 ---
+
+## Qualification boundary
+
+The repository's unit and mock tests do not by themselves establish compatibility with every Avi, FortiADC, Infoblox, OpenStack, or Contrail release. Production qualification requires representative real-system validation, including tenant isolation, target API behavior, repeated-run/idempotency checks, DNS cutover/rollback, and failure recovery.
 
 ## Requirements
 

@@ -45,7 +45,7 @@ class AviClient:
         username:    str,
         password:    str,
         tenant:      str = "admin",
-        api_version: str = "22.1.3",
+        api_version: str = "22.1.5",
         verify_ssl:  bool = True,
         timeout:     int  = 30,
     ):
@@ -55,6 +55,8 @@ class AviClient:
         self._timeout    = timeout
         self._session    = self._make_session(verify_ssl)
         self._csrf_token: Optional[str] = None
+        self._username = username
+        self._password = password
         self._authenticate(username, password)
 
     # ── Session setup ────────────────────────────────────────────────────────
@@ -131,7 +133,7 @@ class AviClient:
         # Re-authenticate on 401 and retry once
         if resp.status_code == 401:
             log.warning("Got 401 on %s — re-authenticating", path)
-            self._authenticate.__func__(self, *getattr(self, "_last_creds", ("", "")))
+            self._authenticate(self._username, self._password)
             resp = self._session.get(
                 url, params=params,
                 headers=self._common_headers(),

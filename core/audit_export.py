@@ -37,6 +37,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from core.events import sanitize
+
 
 def _sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -178,11 +180,11 @@ def export_cef(log_path: str, output_path: Optional[str] = None) -> int:
 
         level     = entry.get("level", "INFO")
         phase     = entry.get("phase", "unknown")
-        message   = entry.get("message", "").replace("|", "/").replace("=", ":")
-        timestamp = entry.get("timestamp", "")
-        obj_type  = entry.get("object_type", "")
-        obj_name  = entry.get("object_name", "")
-        env       = entry.get("env", "")
+        message   = sanitize(str(entry.get("message", ""))).replace("|", "/").replace("=", ":")
+        timestamp = sanitize(str(entry.get("timestamp", "")))
+        obj_type  = sanitize(str(entry.get("object_type", "")))
+        obj_name  = sanitize(str(entry.get("object_name", "")))
+        env       = sanitize(str(entry.get("env", "")))
         severity  = _CEF_SEVERITY.get(level, 3)
         event_id  = f"MIGRATION_{phase.upper()}_{level}"
 

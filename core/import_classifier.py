@@ -24,6 +24,7 @@ from core.avi_import import RAW_TO_DISCOVERY_MAP, DISCOVERY_KEYS
 
 
 GROUP_PIPELINE = "pipeline"
+GROUP_GSLB_RELATED = "gslb_related"
 GROUP_CONTEXT = "context"
 GROUP_NOISE = "noise"
 
@@ -53,6 +54,8 @@ def _count_value(v: Any) -> int:
 def _default_decision_for_group(group: str) -> str:
     if group == GROUP_PIPELINE:
         return "include_in_pipeline"
+    if group == GROUP_GSLB_RELATED:
+        return "context_only"
     if group == GROUP_CONTEXT:
         return "context_only"
     if group == GROUP_NOISE:
@@ -82,6 +85,7 @@ def classify_raw_keys(raw_json: dict[str, Any]) -> dict[str, Any]:
 
     groups: dict[str, dict[str, Any]] = {
         GROUP_PIPELINE: {"keys": [], "mapped_families": {}},
+        GROUP_GSLB_RELATED: {"keys": [], "mapped_families": {}},
         GROUP_CONTEXT: {"keys": [], "mapped_families": {}},
         GROUP_NOISE: {"keys": [], "mapped_families": {}},
     }
@@ -115,7 +119,11 @@ def classify_raw_keys(raw_json: dict[str, Any]) -> dict[str, Any]:
         # - pipeline (directly mapped families and already-normalized discovery keys)
         # - noise
         # - context (default)
-        if raw_key in RAW_TO_DISCOVERY_MAP or raw_key in discovery_family_keys:
+        if raw_key.startswith("Gslb"):
+            # GSLB-family keys are intentionally grouped together even when a
+            # particular raw key is not yet mapped to a strict discovery family.
+            group = GROUP_GSLB_RELATED
+        elif raw_key in RAW_TO_DISCOVERY_MAP or raw_key in discovery_family_keys:
             group = GROUP_PIPELINE
         elif any(p(raw_key) for p in noise_patterns):
             group = GROUP_NOISE
@@ -138,7 +146,7 @@ def classify_raw_keys(raw_json: dict[str, Any]) -> dict[str, Any]:
         inventory[raw_key] = inv_item
 
         groups[group]["keys"].append(raw_key)
-        if mapped_family and group == GROUP_PIPELINE:
+        if mapped_family and group in (GROUP_PIPELINE, GROUP_GSLB_RELATED):
             groups[group]["mapped_families"].setdefault(mapped_family, 0)
             groups[group]["mapped_families"][mapped_family] += 1
 

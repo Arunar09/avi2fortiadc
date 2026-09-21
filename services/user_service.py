@@ -104,6 +104,8 @@ def update_user(user_id, roles=None, password=None):
         user.role = roles
 
     if password:
+        if not isinstance(password, str) or len(password) < 12:
+            return False, "Password must contain at least 12 characters."
         user.set_password(password)
 
     db.session.commit()

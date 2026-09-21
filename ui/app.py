@@ -21,16 +21,9 @@ def create_app(config: dict | None = None) -> Flask:
     """
     Create and configure the Flask application.
 
-    config keys (all optional):
-        TOOL_ROOT          absolute tool root directory
-        TOOL_CONFIG_PATH   path to migration tool config.yaml
-        STATE_DIR          path to state/ directory
-        REPORTS_DIR        path to reports/ directory
-        DISCOVERY_DIR      path to discovery/ directory
-        LOGS_DIR           path to logs/ directory
-        FORTIADC_DIR       path to fortiadc/ directory
-        SECRET_KEY         Flask session key
-        DEBUG              enable Flask debug mode
+    Production security requires an explicit Flask secret via
+    FLASK_SECRET_KEY or the supplied config. A deterministic fallback is
+    never used.
     """
     tool_root = Path(__file__).resolve().parent.parent
 
@@ -40,8 +33,6 @@ def create_app(config: dict | None = None) -> Flask:
         static_folder=str(tool_root / "static"),
     )
 
-    # Defaults are absolute and rooted at the tool directory so the UI
-    # behaves consistently regardless of the process working directory.
     app.config["TOOL_ROOT"] = str(tool_root)
     app.config["TOOL_CONFIG_PATH"] = str(tool_root / "config.yaml")
     app.config["STATE_DIR"] = str(tool_root / "state")
@@ -49,9 +40,8 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["DISCOVERY_DIR"] = str(tool_root / "discovery")
     app.config["LOGS_DIR"] = str(tool_root / "logs")
     app.config["FORTIADC_DIR"] = str(tool_root / "fortiadc")
-    app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", "avi-fortiadc-migration-secret-fixed-v1")
     app.config["DEBUG"] = False
-    
+
     # Identity DB
     identity_db = Path(app.config["STATE_DIR"]) / "identity.db"
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{identity_db}"
@@ -60,21 +50,38 @@ def create_app(config: dict | None = None) -> Flask:
     if config:
         app.config.update(config)
 
-    # Initialize Extensions
+    secret_key = app.config.get("SECRET_KEY") or os.environ.get("FLASK_SECRET_KEY")
+    if not secret_key:
+        if app.config.get("TESTING"):
+            secret_key = "test-only-secret-not-for-production"
+        else:
+            raise RuntimeError(
+                "FLASK_SECRET_KEY is required for the operator console. "
+                "Generate a high-entropy secret and provide it through the environment."
+            )
+    if isinstance(secret_key, str) and len(secret_key) < 32 and not app.config.get("TESTING"):
+        raise RuntimeError("FLASK_SECRET_KEY must be at least 32 characters.")
+    app.config["SECRET_KEY"] = secret_key
+
     from core.models import db, User
     from flask_login import LoginManager, AnonymousUserMixin
     from flask_wtf.csrf import CSRFProtect
-    
+
     db.init_app(app)
     CSRFProtect(app)
 
     class AnonymousUser(AnonymousUserMixin):
-        def has_role(self, role): return False
-        def get_roles(self): return []
-        def is_admin(self): return False
-    
+        def has_role(self, role):
+            return False
+
+        def get_roles(self):
+            return []
+
+        def is_admin(self):
+            return False
+
     login_manager = LoginManager()
-    login_manager.login_view = 'main.login'
+    login_manager.login_view = "main.login"
     login_manager.anonymous_user = AnonymousUser
     login_manager.init_app(app)
 
@@ -82,7 +89,6 @@ def create_app(config: dict | None = None) -> Flask:
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # Bootstrap
     from services.user_service import bootstrap_admin
     bootstrap_admin(app)
 

@@ -75,7 +75,7 @@ _SANITISE_PATTERNS: list[tuple[re.Pattern, str]] = [
      lambda m, _: f"{m.group(1)}[REDACTED]"),
 
     # IPv6 addresses (with optional CIDR).
-    (re.compile(r"(?<![A-Za-z0-9])(?:[0-9A-Fa-f]{1,4}:){2,7}[0-9A-Fa-f]{0,4}(?:/\\d{1,3})?(?![A-Za-z0-9])"),
+    (re.compile(r"(?<![A-Za-z0-9])(?:[0-9A-Fa-f]{1,4}:){2,7}[0-9A-Fa-f]{0,4}(?:/\d{1,3})?(?![A-Za-z0-9])"),
      lambda m, _c={}: f"[IP6_{_c.setdefault(m.group().lower(), len(_c) + 1)}]"),
 
     # IPv4 addresses (keep structure, replace octets)

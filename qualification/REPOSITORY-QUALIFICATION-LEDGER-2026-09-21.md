@@ -68,3 +68,29 @@ This is evidence for those test cases only; it does not qualify real Avi/FortiAD
 
 The repository and mock suite can provide code-level and simulated evidence. They do not establish compatibility with every Avi release, the exact FortiADC target release/API, live Infoblox/OpenStack/Contrail behavior, production tenant isolation, production DNS cutover/rollback, production failure recovery, or preservation of unrelated target configuration.
 Those remain unverified until executed against the relevant systems and captured as qualification evidence.
+
+
+## Q0-DOC-AUDIT-001 — target-dependent operational claims
+
+### Work performed
+Reviewed the repository's operational and technical documentation for claims that could be mistaken for qualification evidence. Corrected three areas:
+- Runbook target-specific API/CLI/UI details, timing values, and operational differences are explicitly marked as examples/planning values pending exact-release validation.
+- Security documentation distinguishes the air-gapped core from optional LLM gateway/proxy behavior; sanitized advisory material may leave the environment when an external gateway is configured.
+- Technical architecture describes RAG retrieval as lexical TF-IDF/BM25 rather than semantic search and aligns deployment ordering language with the repository-defined deployer order.
+
+Commit: cca683a6359389e671389b3894b018bd83887d0b.
+
+### Executed evidence
+GitHub Actions workflow: Offline Qualification, run #22, evaluated commit cca683a6359389e671389b3894b018bd83887d0b.
+
+Result:
+- Workflow status: completed
+- Workflow conclusion: success
+- Python compile: PASS
+- Full test-suite step: PASS
+- GitHub Actions job: PASS
+
+### Qualification state
+RATIFIED — Q0-DOC-AUDIT-001.
+
+Scope: documentation claim qualification only. This does not establish live platform compatibility or production behavior.

@@ -53,6 +53,8 @@ def _count_value(v: Any) -> int:
 def _default_decision_for_group(group: str) -> str:
     if group == GROUP_PIPELINE:
         return "include_in_pipeline"
+    if group == GROUP_GSLB_RELATED:
+        return "context_only"
     if group == GROUP_CONTEXT:
         return "context_only"
     if group == GROUP_NOISE:
@@ -138,7 +140,7 @@ def classify_raw_keys(raw_json: dict[str, Any]) -> dict[str, Any]:
         inventory[raw_key] = inv_item
 
         groups[group]["keys"].append(raw_key)
-        if mapped_family and group == GROUP_PIPELINE:
+        if mapped_family and group in (GROUP_PIPELINE, GROUP_GSLB_RELATED):
             groups[group]["mapped_families"].setdefault(mapped_family, 0)
             groups[group]["mapped_families"][mapped_family] += 1
 

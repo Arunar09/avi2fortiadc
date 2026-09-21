@@ -11,6 +11,7 @@ A work item is not ratified when executable evidence is absent or when any requi
 - 3078e04a20b8bc92eea4da10ba31f625a0b9e43c — aligned tests with the current strict import, state-ledger path, and paginated activity contracts.
 - 7c0e33d9285ec5d8767ea107e82e2e229c463dde — partial GSLB classification correction.
 - 3bb666db0e8af104f353ea32279d3bf208cb6943 — completed GSLB classifier group definition and classification.
+- e2fe107652b7c0ea38ba7d9d4006d1ecbc730ece — corrected classifier ordering so all raw keys beginning with `Gslb` are classified as `gslb_related` before context fallback.
 
 ### Executed evidence
 
@@ -31,13 +32,30 @@ Result:
 - Root cause: the correction referenced GROUP_GSLB_RELATED but did not yet define the constant/group in the classifier.
 - The four failures were consequences of that missing definition.
 
-The completed correction is commit 3bb666db0e8af104f353ea32279d3bf208cb6943.
+The completed group-definition correction was commit 3bb666db0e8af104f353ea32279d3bf208cb6943.
 
-### Current qualification state
+The final classifier-order correction is commit e2fe107652b7c0ea38ba7d9d4006d1ecbc730ece.
 
-NOT RATIFIED.
+### Final executed evidence for the correction
 
-Reason: the completed correction has not yet been observed in a completed CI test result. The latest completed evidence predates the complete correction.
+GitHub Actions workflow: Offline Qualification, run #19, evaluated commit e2fe107652b7c0ea38ba7d9d4006d1ecbc730ece.
+
+Result:
+- Workflow status: completed
+- Workflow conclusion: success
+- Python compile: PASS
+- Full test-suite step: PASS
+- GitHub Actions job `test`: PASS
+
+The completed run provides executable evidence that the corrected classifier ordering passes the repository's available qualification test suite.
+
+### Qualification state
+
+RATIFIED — Q0-FIX-001.
+
+Scope of ratification:
+- The import/classifier correction represented by e2fe107 is supported by completed CI evidence.
+- This ratification does not extend to live Avi/FortiADC interoperability or production qualification.
 
 ## Q0 security baseline
 

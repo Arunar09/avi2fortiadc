@@ -125,11 +125,18 @@ No other files need changing.
 
 ## Documentation
 
+Start with [docs/INDEX.md](docs/INDEX.md), the canonical documentation map.
+
 | Document | Purpose |
 |---|---|
-| [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md) | Complete installation and usage guide |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Technical architecture, RAG design, data model |
-| [`docs/SECURITY.md`](docs/SECURITY.md) | Security controls, sanitization, credential handling |
+| [docs/00-PRODUCT-OVERVIEW.md](docs/00-PRODUCT-OVERVIEW.md) | Scope, lifecycle and capability boundaries |
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Installation and complete operator workflow |
+| [docs/OBJECT-MAPPING-MATRIX.md](docs/OBJECT-MAPPING-MATRIX.md) | Current object-family handling |
+| [docs/UNSUPPORTED-FEATURES.md](docs/UNSUPPORTED-FEATURES.md) | Manual and blocked feature policy |
+| [docs/ENVIRONMENT-DEPENDENCIES.md](docs/ENVIRONMENT-DEPENDENCIES.md) | OpenStack, Contrail, Infoblox and DNS dependencies |
+| [docs/SECURITY.md](docs/SECURITY.md) | Security controls and data handling |
+| [docs/QUALIFICATION.md](docs/QUALIFICATION.md) | Evidence and release-gate method |
+| [qualification/QUALIFICATION-MATRIX.md](qualification/QUALIFICATION-MATRIX.md) | Authoritative current qualification status |
 
 ---
 

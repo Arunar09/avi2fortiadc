@@ -126,3 +126,49 @@ def test_fortiadc_exists_returns_false_only_for_404(monkeypatch):
 
     monkeypatch.setattr(client, "get", missing)
     assert client.exists("objects", "name") is False
+
+
+def test_deployer_repeated_run_switches_from_create_to_update():
+    from core.events import EventBus
+    from deployers.fortiadc_deployer import FortiADCDeployer
+
+    class FakeClient:
+        dry_run = False
+
+        def __init__(self):
+            self.present = False
+            self.created = []
+            self.updated = []
+
+        def exists(self, path, name, vdom=None):
+            return self.present
+
+        def create(self, path, payload, vdom=None):
+            self.created.append((path, payload, vdom))
+            self.present = True
+            return {"ok": True}
+
+        def update(self, path, name, payload, vdom=None):
+            self.updated.append((path, name, payload, vdom))
+            return {"ok": True}
+
+    client = FakeClient()
+    bus = EventBus(verbose=False)
+    deployer = FortiADCDeployer(client, bus)
+    config = {
+        "real_servers": [{
+            "name": "rs-1",
+            "fortiadc_path": "load_balance/real_server",
+            "payload": {"name": "rs-1", "ip": "10.0.0.10"},
+            "vdom": "vdom-a",
+        }]
+    }
+
+    first = deployer.deploy_all(config)
+    second = deployer.deploy_all(config)
+
+    assert first[0].success is True
+    assert second[0].success is True
+    assert len(client.created) == 1
+    assert len(client.updated) == 1
+    assert client.updated[0][2] == config["real_servers"][0]["payload"]

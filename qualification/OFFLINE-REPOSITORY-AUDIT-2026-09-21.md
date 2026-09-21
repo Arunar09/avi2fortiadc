@@ -29,7 +29,7 @@ The qualification pack independently states that real-device qualification requi
 
 ### 2. Offline qualification workflow exists
 
-**Result:** IMPLEMENTED — EXECUTION PENDING
+**Result:** PASS — EXECUTED CI
 
 The repository contains `.github/workflows/qualification.yml` configured to:
 
@@ -38,29 +38,21 @@ The repository contains `.github/workflows/qualification.yml` configured to:
 3. compile Python;
 4. run `pytest -q`.
 
-No GitHub Actions workflow run or commit status was available for baseline commit `e0e5287ed87b44c0489564b1ed4d875abb518d58` at audit time.
+The later repository-hardening commits were executed by GitHub Actions. Run #71 evaluated the final evidence-recording commit `da8a585fb80e15682ceb6ea0738682ea3027cfd5` and completed successfully with Python compilation and the full pytest step passing.
 
-Therefore the workflow is **not yet evidence of a passing test suite**.
+This is executable evidence for the current repository state, rather than evidence for the historical baseline commit.
 
 ### 3. Architecture contains an over-broad idempotency statement
 
-**Result:** FINDING — DOCUMENTATION NEEDS CORRECTION
+**Result:** CORRECTED — VERIFIED
 
-`ARCHITECTURE.md` currently says:
-
-> "Idempotent deployment | Deploy checks object existence before create. Re-running is always safe."
-
-The README correctly qualifies this by stating that complete idempotency must be validated against the target release/configuration.
-
-The architecture wording is stronger than the current qualification evidence supports. It should be changed to describe the implemented exists/update/create behavior while explicitly requiring target-version validation.
+The canonical architecture documentation was corrected to describe implemented existence/update handling and to require exact target-release validation rather than asserting universal safety. The documentation-consistency test covers this claim boundary and passed in run #71.
 
 ### 4. Local test guide contains an over-broad rollback/demo claim
 
-**Result:** FINDING — DOCUMENTATION NEEDS CORRECTION
+**Result:** CORRECTED — VERIFIED
 
-`tests/LOCAL-TEST-SETUP.md` contains a demo narrative stating that one command "returns everything to AVI."
-
-The repository qualification model requires rollback to be tested and evidenced; the mock/offline material cannot establish production rollback semantics. The statement should be rewritten as a rollback-script/demo description with an explicit qualification boundary.
+The local test documentation was qualified so rollback/demo behavior is not presented as production rollback evidence. The documentation-consistency test checks for the unqualified claim and passed in run #71.
 
 ### 5. Mock environment is useful but not target qualification
 
@@ -91,24 +83,24 @@ The following require representative-system evidence:
 | Test/evidence | Expected | Observed | Status |
 |---|---|---|---|
 | Workflow file present | Qualification workflow exists | Present | PASS — CODE |
-| GitHub Actions run for baseline commit | Executed result | No run returned | NOT-TESTED |
-| Commit status for baseline commit | Test status | No status returned | NOT-TESTED |
-| Local pytest execution | Actual test result | Not executed in this qualification step | NOT-TESTED |
+| GitHub Actions current-state qualification | Executed result | Run #71 completed successfully | PASS — CI |
+| Evidence-recording commit | Completed CI verification | `da8a585fb80e15682ceb6ea0738682ea3027cfd5`, run #71 | PASS — CI |
+| Repository pytest suite | Actual test result | Full pytest step passed in run #71 | PASS — CI |
 | Real Avi/FortiADC qualification | Representative-system evidence | No representative target evidence in repository | UNVERIFIED |
-| Documentation consistency | Claims bounded by evidence | Two over-broad claims identified | FINDING |
+| Documentation consistency | Claims bounded by evidence | Consistency test passed in run #71 | PASS — CI |
 
 ## Ratification state
 
-**Q0-AUDIT-001: NOT RATIFIED.**
+**Q0-AUDIT-001: PENDING EVIDENCE-RECORDING COMMIT VERIFICATION.**
 
-Reason: the audit itself is committed evidence, but executable test results are not available yet. Documentation findings also remain open.
+The original findings were corrected and the current repository state passed the full automated qualification workflow. Final ratification is recorded only after this audit-state update itself receives completed successful CI evidence, following the repository operating rule.
 
-## Required next work
+### Executed evidence reviewed
 
-1. Correct the architecture idempotency wording.
-2. Correct the local rollback/demo wording.
-3. Commit each correction separately.
-4. After each commit, obtain actual automated test evidence.
-5. Ratify only when the corresponding evidence is available and reviewed.
-6. Continue with repository-level Q0 tests before claiming Q0 qualification.
+- Offline Qualification run #71
+- Run ID `35579871609`
+- Commit evaluated: `da8a585fb80e15682ceb6ea0738682ea3027cfd5`
+- Python compile: PASS
+- Full pytest: PASS
+- Job `test`: PASS
 

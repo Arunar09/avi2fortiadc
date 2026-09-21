@@ -91,15 +91,15 @@ The following require representative-system evidence:
 
 ## Ratification state
 
-**Q0-AUDIT-001: PENDING EVIDENCE-RECORDING COMMIT VERIFICATION.**
+**Q0-AUDIT-001: RATIFIED.**
 
-The original findings were corrected and the current repository state passed the full automated qualification workflow. Final ratification is recorded only after this audit-state update itself receives completed successful CI evidence, following the repository operating rule.
+The original findings were corrected and the current repository state passed the full automated qualification workflow. The evidence-recording commit `879902e98e724ea0c03ff26d1af9d990a97b2251` was then evaluated by Offline Qualification run #73 and completed successfully, closing the evidence chain.
 
-### Executed evidence reviewed
+### Final evidence reviewed
 
-- Offline Qualification run #71
-- Run ID `35579871609`
-- Commit evaluated: `da8a585fb80e15682ceb6ea0738682ea3027cfd5`
+- Offline Qualification run #73
+- Run ID `35580956286`
+- Commit evaluated: `879902e98e724ea0c03ff26d1af9d990a97b2251`
 - Python compile: PASS
 - Full pytest: PASS
 - Job `test`: PASS

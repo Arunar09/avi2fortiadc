@@ -41,6 +41,10 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["LOGS_DIR"] = str(tool_root / "logs")
     app.config["FORTIADC_DIR"] = str(tool_root / "fortiadc")
     app.config["DEBUG"] = False
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = os.environ.get("FLASK_SESSION_COOKIE_SECURE", "false").lower() == "true"
+    app.config["PERMANENT_SESSION_LIFETIME"] = 3600
 
     # Identity DB
     identity_db = Path(app.config["STATE_DIR"]) / "identity.db"

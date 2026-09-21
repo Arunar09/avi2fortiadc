@@ -181,3 +181,46 @@ Scope of ratification:
 - The known documentation test defect was detected in run #65, corrected in `fdb80eec`, and the correction passed run #67.
 - The evidence-recording ledger commit then passed run #69.
 - This ratification does not establish live Avi/FortiADC/OpenStack/Contrail/Infoblox interoperability or production qualification.
+
+
+## Q0-002 — security artifact redaction
+
+### Work performed
+
+Persisted migration-event JSONL artifacts and CEF audit exports were changed to sanitize secret-bearing fields before serialization. Adversarial tests cover credential-bearing authority values, including username/password forms without an explicit URL scheme.
+
+Commits:
+- efa97472c8822016bf0d012b6f6d0a2b40710429 — sanitize persisted migration-event artifacts.
+- 215dc66c908e1e3b54602d34028afa05e2f7e003 — sanitize CEF audit export fields.
+- d5e37e65ba6ae34fde7195715ab7e41039847d45 — add JSONL/CEF leakage regression tests.
+- 003ad437315d0a1bce93c59c5b4e5389969f2799 — redact credential-bearing authority values and close the failing CEF case.
+
+### Executed evidence
+
+GitHub Actions workflow: Offline Qualification, run #83, run ID 35595063729, evaluated commit 003ad437315d0a1bce93c59c5b4e5389969f2799.
+
+Result:
+- Workflow status: completed
+- Workflow conclusion: success
+- Python compile: PASS
+- Full pytest step: PASS
+- GitHub Actions job `test`: PASS
+- Test suite: completed successfully after the previously observed CEF secret-leakage failure.
+
+### Qualification state
+
+RATIFIED — Q0-002.
+
+Scope: repository-level artifact sanitization covered by the executed regression tests. This does not establish absence of secret leakage in every untested code path or in live external integrations.
+
+## Live-system qualification status
+
+The repository intentionally records real-system requirements separately from offline repository evidence. They remain NOT-TESTED until evidence is captured from the relevant environment:
+
+- Q1 Avi 22.1.5: controller/version, tenant isolation, inventory, dependency, GSLB and DataScript evidence — NOT-TESTED.
+- Q2 OpenStack/Contrail/Infoblox: tenant/project, network/VRF, DNS/IPAM and integration evidence — NOT-TESTED.
+- Q3 FortiADC: exact firmware/API/VDOM model and target behavior — NOT-TESTED.
+- Q4 Migration: representative tenant dry-run/deployment/repeat/preservation/failure recovery/rollback/parallel-run/DNS cutover and rollback — NOT-TESTED.
+- Q5 Production: approval/SoD, audit integrity, cross-tenant denial, permission fail-closed behavior and production secret-leakage evidence — NOT-TESTED.
+
+These statuses are deliberate qualification boundaries, not inferred PASS results.

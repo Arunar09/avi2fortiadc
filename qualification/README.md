@@ -100,3 +100,7 @@ NOTES:
 ## Current qualification boundary
 
 The repository can establish code-level and mock-test evidence. It cannot establish real Avi/FortiADC/Infoblox/OpenStack/Contrail qualification without access to representative systems and evidence from those systems.
+
+## Offline/documentary qualification mode
+
+Real-device access is not required to continue repository qualification. When no representative appliance/environment is available, use these evidence classes: **CODE** (implementation), **UNIT** (automated tests), **MOCK** (mock services), **DOCUMENTATION** (supplied/project documentation), **EXTERNAL** (cited vendor/public documentation), **INFERENCE** (reasoned conclusion, never presented as tested), and **UNVERIFIED** (requires real-system validation). The absence of a real environment is a qualification boundary, not evidence of failure. The immediate objective is to maximize what can be proven from the repository and supplied sources.

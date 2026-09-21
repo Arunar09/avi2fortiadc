@@ -83,3 +83,46 @@ def test_first_run_bootstraps_only_with_explicit_strong_password(monkeypatch, tm
         assert user.has_role("approver")
         assert user.check_password("A-strong-bootstrap-password-123")
         assert not user.check_password("admin")
+
+
+def test_fortiadc_exists_fails_closed_on_non_404(monkeypatch):
+    import requests
+    from core.fortiadc_client import FortiADCClient
+
+    client = FortiADCClient(
+        "https://example.invalid",
+        "user",
+        "password",
+        dry_run=True,
+    )
+    response = requests.Response()
+    response.status_code = 403
+    error = requests.HTTPError("forbidden", response=response)
+
+    def denied(*args, **kwargs):
+        raise error
+
+    monkeypatch.setattr(client, "get", denied)
+    with pytest.raises(requests.HTTPError):
+        client.exists("objects", "name")
+
+
+def test_fortiadc_exists_returns_false_only_for_404(monkeypatch):
+    import requests
+    from core.fortiadc_client import FortiADCClient
+
+    client = FortiADCClient(
+        "https://example.invalid",
+        "user",
+        "password",
+        dry_run=True,
+    )
+    response = requests.Response()
+    response.status_code = 404
+    error = requests.HTTPError("not found", response=response)
+
+    def missing(*args, **kwargs):
+        raise error
+
+    monkeypatch.setattr(client, "get", missing)
+    assert client.exists("objects", "name") is False

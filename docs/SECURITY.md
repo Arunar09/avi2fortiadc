@@ -13,8 +13,8 @@ The primary goal of this tool is to provide a secure and auditable path for migr
 
 ### 1.2 Sanitization
 - The `llm-pack` command creates specialized snapshots for external analysis.
-- All IPs, hostnames, UUIDs, and secrets are replaced with deterministic placeholders (e.g., `VIP-1`, `Svr-Name-B`).
-- LLM advisory requests include only the sanitized prompt and context, never raw environment data.
+- Configured sanitization replaces recognized IPs, hostnames, UUIDs, and secret-like values with deterministic placeholders (e.g., `VIP-1`, `Svr-Name-B`).
+- LLM advisory requests should contain only sanitized prompt/context when sanitization is enabled; sanitized output must still be reviewed before external sharing.
 
 ---
 
@@ -23,7 +23,7 @@ The primary goal of this tool is to provide a secure and auditable path for migr
 - **Avi Access**: The tool requires a **Read-Only (Viewer)** service account. It never attempts to modify Avi configuration.
 - **FortiADC Access**: Deployment requires a service account with **Admin** permissions on the target VDOM.
 - **Credential Handling**:
-    - Credentials should be provided via environment variables (e.g., `MIGRATION_AVI_PASS`) to avoid plaintext storage.
+    - Credentials should be provided via the environment variables documented in `config.example.yaml` (for example, `LB_MIGRATION_SOURCE_PASSWORD` and `LB_MIGRATION_TARGET_PASSWORD`) to avoid plaintext storage.
     - If stored in `config.yaml`, the file should be protected with standard OS filesystem permissions.
 
 ---

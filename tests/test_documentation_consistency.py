@@ -11,7 +11,7 @@ REQUIRED_DOCS = [
     "docs/OBJECT-MAPPING-MATRIX.md",
     "docs/UNSUPPORTED-FEATURES.md",
     "docs/DATASCRIPT-MIGRATION.md",
-    "docs/GSLB-MIGRATION.md",
+    "GSLB-MIGRATION.md",
     "docs/ENVIRONMENT-DEPENDENCIES.md",
     "docs/SECURITY.md",
     "docs/CLI-REFERENCE.md",

@@ -24,6 +24,7 @@ from core.avi_import import RAW_TO_DISCOVERY_MAP, DISCOVERY_KEYS
 
 
 GROUP_PIPELINE = "pipeline"
+GROUP_GSLB_RELATED = "gslb_related"
 GROUP_CONTEXT = "context"
 GROUP_NOISE = "noise"
 
@@ -84,6 +85,7 @@ def classify_raw_keys(raw_json: dict[str, Any]) -> dict[str, Any]:
 
     groups: dict[str, dict[str, Any]] = {
         GROUP_PIPELINE: {"keys": [], "mapped_families": {}},
+        GROUP_GSLB_RELATED: {"keys": [], "mapped_families": {}},
         GROUP_CONTEXT: {"keys": [], "mapped_families": {}},
         GROUP_NOISE: {"keys": [], "mapped_families": {}},
     }
@@ -118,7 +120,7 @@ def classify_raw_keys(raw_json: dict[str, Any]) -> dict[str, Any]:
         # - noise
         # - context (default)
         if raw_key in RAW_TO_DISCOVERY_MAP or raw_key in discovery_family_keys:
-            group = GROUP_PIPELINE
+            group = GROUP_GSLB_RELATED if raw_key.startswith("Gslb") else GROUP_PIPELINE
         elif any(p(raw_key) for p in noise_patterns):
             group = GROUP_NOISE
         else:

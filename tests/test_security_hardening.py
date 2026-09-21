@@ -172,3 +172,41 @@ def test_deployer_repeated_run_switches_from_create_to_update():
     assert len(client.created) == 1
     assert len(client.updated) == 1
     assert client.updated[0][2] == config["real_servers"][0]["payload"]
+
+
+def test_event_jsonl_artifact_redacts_secret_bearing_fields(tmp_path):
+    from core.events import EventBus, MigrationEvent, Level, Phase
+
+    path = tmp_path / "events.jsonl"
+    secret = "artifact-super-secret-987"
+    bus = EventBus(log_path=path, verbose=False)
+    bus.emit(MigrationEvent(
+        Level.ERROR,
+        Phase.DEPLOY,
+        f"request failed password={secret}",
+        object_name="admin.internal.example",
+        object_uuid="123e4567-e89b-12d3-a456-426614174000",
+        detail={"api_key": secret, "nested": {"token": secret}},
+    ))
+    bus.close()
+
+    raw = path.read_text()
+    assert secret not in raw
+    assert "CREDENTIAL_REDACTED" in raw or "[REDACTED]" in raw
+
+
+def test_cef_export_redacts_secret_bearing_fields(tmp_path):
+    from core.audit_export import export_cef
+
+    source = tmp_path / "events.jsonl"
+    target = tmp_path / "events.cef"
+    secret = "cef-super-secret-654"
+    source.write_text(
+        '{"level":"ERROR","phase":"DEPLOY","message":"password=' + secret +
+        '","object_name":"admin.internal.example","env":"user:pass@internal.example"}\n'
+    )
+
+    assert export_cef(str(source), str(target)) == 1
+    output = target.read_text()
+    assert secret not in output
+    assert "pass@" not in output

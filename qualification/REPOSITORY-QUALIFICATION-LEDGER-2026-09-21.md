@@ -146,10 +146,23 @@ A repository documentation-consistency test was added at tests/test_documentatio
 
 The repository workflow is configured to compile Python and run the full pytest suite on pushes to hardening branches and pull requests to main.
 
-The latest documentation-consistency commit has been pushed, but a completed CI result for b15a3549 has not been observed through the available GitHub workflow/status interface in this session.
+Initial execution of the documentation-consistency work exposed one test defect: run #65 for commit 8625a8255b9cd8164e2cd16b01165de3c7e1167b completed with 1 failure and 84 passes because the test expected GSLB-MIGRATION.md under docs/ while the repository file is intentionally at the repository root. The failure was reviewed and corrected by commit fdb80eec24ed166ccbf79830593585cc87a6c054.
+
+Final executed evidence for the correction:
+- GitHub Actions workflow: Offline Qualification
+- Run: #67
+- Run ID: 35578541731
+- Evaluated commit: fdb80eec24ed166ccbf79830593585cc87a6c054
+- Workflow status: completed
+- Workflow conclusion: success
+- Job test: PASS
+- Python compile: PASS
+- Full pytest step: PASS
+
+The failed run is retained as evidence of the defect discovery and repair; it is not treated as a passing result.
 
 ### Qualification state
 
-NOT-RATIFIED — Q0-DOC-CONSISTENCY-001.
+PENDING FINAL LEDGER VERIFICATION — Q0-DOC-CONSISTENCY-001.
 
-No PASS is recorded until the completed workflow result for the current work is observed and reviewed.
+The documentation-consistency correction itself has completed successful CI evidence. The qualification ledger must also be committed and observed with a completed successful CI run before this work item is marked RATIFIED, per the repository operating rule.

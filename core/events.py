@@ -58,8 +58,8 @@ _SANITISE_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"-----BEGIN [^-\n]+-----.*?-----END [^-\n]+-----", re.IGNORECASE | re.DOTALL),
      lambda m, _: "[KEY_MATERIAL_REDACTED]"),
 
-    # Credentials embedded in URLs.
-    (re.compile(r"(https?://)([^:/\s]+):([^@\s]+)@", re.IGNORECASE),
+    # Credentials embedded in URLs or authority-like values.
+    (re.compile(r"((?:https?://)?)([^:/\s@]+):([^@\s]+)@", re.IGNORECASE),
      lambda m, _: f"{m.group(1)}[USER_REDACTED]:[PASSWORD_REDACTED]@"),
 
     # Common authentication headers and cookies.

@@ -94,3 +94,11 @@ Result:
 RATIFIED — Q0-DOC-AUDIT-001.
 
 Scope: documentation claim qualification only. This does not establish live platform compatibility or production behavior.
+
+### Ledger commit verification
+The evidence-recording ledger commit is d4e8e697c44108e82d55351df44742fbf870c9fe. GitHub Actions Offline Qualification run #24 evaluated that commit and completed successfully:
+- Python compile: PASS
+- Full test-suite step: PASS
+- Workflow conclusion: success
+
+This closes the documentation-audit evidence chain.

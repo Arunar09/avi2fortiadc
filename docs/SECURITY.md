@@ -9,7 +9,8 @@ The primary goal of this tool is to provide a secure and auditable path for migr
 ### 1.1 Local Storage
 - Configuration data, discovery snapshots, and reports are stored locally in the workspace.
 - `config.yaml` is explicitly excluded from version control via `.gitignore`.
-- No data is uploaded to any cloud service.
+- The core migration pipeline does not require cloud services or automatic cloud upload.
+- If an optional LLM gateway/proxy is configured, sanitized advisory material may leave the local environment according to that gateway's deployment and policy. Review the sanitized pack and gateway configuration before enabling external analysis.
 
 ### 1.2 Sanitization
 - The `llm-pack` command creates specialized snapshots for external analysis.

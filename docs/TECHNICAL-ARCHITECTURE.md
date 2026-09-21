@@ -43,7 +43,7 @@ The transformation gate uses the **V-A-N-R (VDOM, Application, Network, Route)**
 The "Expert Insight" system.
 - **Function**: `query()` in `core/rag/augmentor.py`
 - **Operation**:
-    1. **Semantic Search**: Uses BM25 to find relevant chunks in the local SQLite DB.
+    1. **Lexical Retrieval**: Uses the repository's TF-IDF/BM25 retrieval pipeline to find relevant chunks in the local SQLite DB.
     2. **Ranker**: Prioritizes `experience` source (learned patterns) over `docs`.
     3. **Augmentation**: Injects the **Environment Snapshot** (current tenant/object context) into the prompt before calling the LLM.
     4. **Knowledge Loop**: `save_experience()` writes markdown files that are immediately indexed to create a permanent learning effect.

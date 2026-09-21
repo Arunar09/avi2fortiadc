@@ -46,6 +46,8 @@ def bootstrap_admin(app):
 
 def create_user(username, password, roles="user"):
     """Create a new local user account with one or more roles."""
+    if not isinstance(password, str) or len(password) < 12:
+        return False, "Password must contain at least 12 characters."
     if User.query.filter_by(username=username).first():
         return False, "User already exists"
 
@@ -75,6 +77,8 @@ def delete_user(user_id):
 
 def reset_password(user_id, new_password):
     """Reset a user's password."""
+    if not isinstance(new_password, str) or len(new_password) < 12:
+        return False, "Password must contain at least 12 characters."
     user = User.query.get(user_id)
     if not user:
         return False, "User not found"

@@ -119,8 +119,12 @@ def classify_raw_keys(raw_json: dict[str, Any]) -> dict[str, Any]:
         # - pipeline (directly mapped families and already-normalized discovery keys)
         # - noise
         # - context (default)
-        if raw_key in RAW_TO_DISCOVERY_MAP or raw_key in discovery_family_keys:
-            group = GROUP_GSLB_RELATED if raw_key.startswith("Gslb") else GROUP_PIPELINE
+        if raw_key.startswith("Gslb"):
+            # GSLB-family keys are intentionally grouped together even when a
+            # particular raw key is not yet mapped to a strict discovery family.
+            group = GROUP_GSLB_RELATED
+        elif raw_key in RAW_TO_DISCOVERY_MAP or raw_key in discovery_family_keys:
+            group = GROUP_PIPELINE
         elif any(p(raw_key) for p in noise_patterns):
             group = GROUP_NOISE
         else:

@@ -1,6 +1,6 @@
 # Technical Architecture: Operation-by-Operation Reference
 
-This document provides a deep-dive into the internal operations of the Avi-to-FortiADC migration tool. It is designed to be the primary technical source for the RAG engine when answering questions about "how" the tool performs its tasks.
+This document describes the implementation currently present in the repository. Where behavior depends on a real Avi, FortiADC, Infoblox, OpenStack, or Contrail deployment, it must be qualified against the target platform/version before production use.
 
 ## 1. Discovery & Ingestion (`core/import_classifier.py`)
 The discovery phase is the "Foundation Gate."
@@ -12,7 +12,7 @@ The discovery phase is the "Foundation Gate."
     4. **Inclusion Logic**: If a `VirtualService` is selected, the classifier recursively flags all children (Pools, Certs) as `Include` and all neighbors (VRFs, Networks) as `Context`.
 
 ## 2. Dependency Resolution (`core/resolver.py`)
-The "Intelligence" behind the tool is the Dependency Graph.
+Dependency and impact analysis are implemented across the resolver/analyzer components.
 - **Function**: `ConfigurationGraph`
 - **Operation**:
     1. **Adjacency Matrix**: Builds a directed graph of all objects.
@@ -30,12 +30,12 @@ This service orchestrates the "Decision Gates."
 
 ## 4. Transformation Pipeline (`transformers/`)
 The transformation gate uses the **V-A-N-R (VDOM, Application, Network, Route)** model.
-- **Core Orchestrator**: `transformers/base.py`
+- **Core implementation**: concrete transformer modules under `transformers/` and orchestration in the pipeline services.
 - **Object Converters**: 
     - `VirtualServiceTransformer`: Converts Avi VS + VsVip → `load_balance_virtual_server`.
     - `PoolTransformer`: Converts Avi Pool + Servers → `load_balance_pool`.
 - **Payload Construction**:
-    1. Fetches "Baseline" config from FortiADC to avoid ID collisions.
+    1. Uses the configured target/baseline data where implemented; target API compatibility must be validated against the actual FortiADC release.
     2. Applies mapping rules from `transformers/mappings.py`.
     3. Performs **Auto-Correction** (e.g., rewriting HMAC-SHA1 to SHA256 where required).
 
@@ -48,10 +48,10 @@ The "Expert Insight" system.
     3. **Augmentation**: Injects the **Environment Snapshot** (current tenant/object context) into the prompt before calling the LLM.
     4. **Knowledge Loop**: `save_experience()` writes markdown files that are immediately indexed to create a permanent learning effect.
 
-## 6. Execution & Deployment (`core/deployer.py`)
+## 6. Execution & Deployment (`deployers/fortiadc_deployer.py`)
 The final gate that interacts with the FortiADC API.
-- **Function**: `FortiADCDeployer.deploy()`
+- **Implementation**: `deployers/fortiadc_deployer.py`.
 - **Operation**:
     1. **Idempotency Check**: Verifies if the object already exists in the target VDOM.
     2. **Dependency Order**: Deploys in the sequence: `Cert -> Pool -> VS`.
-    3. **Rollback Journaling**: Every successful API call is recorded in `state/env-rollback.json` for atomic reversal if the migration fails.
+    3. **Rollback**: Rollback behavior must be evaluated from the actual deployer and rollback implementation; do not assume atomic reversal of every API call without test evidence.

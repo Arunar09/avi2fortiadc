@@ -121,7 +121,7 @@ def _get_fortiadc_client(env: str, dry_run: bool = True):
     return FortiADCClient(
         host       = cfg["fortiadc"]["host"],
         username   = cfg["fortiadc"]["username"],
-        password   = cfg["fortiadc"]["password"],
+        password   = os.environ.get("LB_MIGRATION_TARGET_PASSWORD", cfg["fortiadc"].get("password", "")),
         vdom       = env_cfg.get("fortiadc_vdom", cfg["fortiadc"].get("vdom", "root")),
         verify_ssl = cfg["fortiadc"].get("verify_ssl", True),
         dry_run    = dry_run,
@@ -129,7 +129,7 @@ def _get_fortiadc_client(env: str, dry_run: bool = True):
 
 
 @bp.route("/api/validation/pre-flight/<env>", methods=["POST"])
-@roles_required(['admin', 'user'])
+@roles_required(["admin", "approver"])
 def api_pre_flight_validation(env):
     """Runs a full syntax-only dry-run deployment against the target FortiADC."""
     dirs = _dirs()
@@ -1893,15 +1893,9 @@ def api_decision_status(env):
 
 
 @bp.route("/api/import/commit", methods=["POST"])
-@login_required
+@roles_required(["admin", "approver"])
 def api_import_commit():
     """API endpoint for analyzer-to-tool strict import flow."""
-    if request.method == "OPTIONS":
-        resp = jsonify({"ok": True})
-        resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
-        resp.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        return resp, 200
-
     body = request.get_json(silent=True) or {}
     env_name = str(body.get("env_name", "")).strip().lower()
     payload_type = str(body.get("payload_type", "normalized_discovery")).strip()
@@ -1921,9 +1915,7 @@ def api_import_commit():
         payload_type=payload_type or "normalized_discovery",
     )
     status = 200 if result.get("success") or result.get("decision_required") else 400
-    resp = jsonify(result)
-    resp.headers["Access-Control-Allow-Origin"] = "*"
-    return resp, status
+    return jsonify(result), status
 
 
 @bp.route("/pipeline/<env>")
@@ -1946,7 +1938,7 @@ def pipeline_detail(env):
 
 
 @bp.route("/env/delete/<env>", methods=["POST"])
-@login_required
+@admin_required
 def delete_env(env):
     dirs = _dirs()
     pipeline_svc.delete_environment(dirs, env)
@@ -2127,7 +2119,7 @@ def ai_chat():
 
 
 @bp.route("/api/ai/index", methods=["GET", "POST"])
-@login_required
+@roles_required(["admin", "approver"])
 def ai_index():
     """
     RAG Index management endpoint.
@@ -2160,7 +2152,7 @@ def ai_insight():
 
 
 @bp.route("/api/ai/save-experience", methods=["POST"])
-@login_required
+@roles_required(["admin", "approver"])
 def ai_save_experience():
     """Commit an AI insight to the local KB."""
     data    = request.json or {}
@@ -2185,7 +2177,7 @@ def api_topology(env: str):
 
 
 @bp.route("/api/vdom/strategies/<env>", methods=["GET", "POST"])
-@login_required
+@roles_required(["admin", "approver"])
 def api_vdom_strategies(env: str):
     """GET: return current mappings. POST: update vdom mapping strategy."""
     dirs = _dirs()
@@ -2241,7 +2233,7 @@ def api_vdom_strategies(env: str):
 
 
 @bp.route("/api/network/strategies/<env>", methods=["GET", "POST"])
-@login_required
+@roles_required(["admin", "approver"])
 def api_network_strategies(env: str):
     """Manages modular network mapping (VLANs, SNAT, Routing)."""
     dirs = _dirs()
@@ -2362,7 +2354,7 @@ def api_vdom_probe(env: str):
         if client:
             client.close()
 @bp.route("/api/fortiadc/existing-config/<env>")
-@login_required
+@roles_required(["admin", "approver"])
 def api_fortiadc_existing_config(env: str):
     """Returns the full cached/saved target FortiADC state for reference evaluation."""
     dirs = _dirs()

@@ -161,8 +161,23 @@ Final executed evidence for the correction:
 
 The failed run is retained as evidence of the defect discovery and repair; it is not treated as a passing result.
 
+### Final ledger verification
+
+The evidence-recording ledger commit is `f706a83c761b6ce84315a085de8202dc09f41bea`. GitHub Actions Offline Qualification run #69 (run ID `35579762330`) evaluated that commit and completed successfully:
+- Workflow status: completed
+- Workflow conclusion: success
+- Job `test`: PASS
+- Python compile: PASS
+- Full pytest step: PASS
+
+This provides completed executable evidence for the evidence-recording commit itself.
+
 ### Qualification state
 
-PENDING FINAL LEDGER VERIFICATION — Q0-DOC-CONSISTENCY-001.
+RATIFIED — Q0-DOC-CONSISTENCY-001.
 
-The documentation-consistency correction itself has completed successful CI evidence. The qualification ledger must also be committed and observed with a completed successful CI run before this work item is marked RATIFIED, per the repository operating rule.
+Scope of ratification:
+- Canonical documentation organization and documentation-consistency checks are supported by completed CI evidence.
+- The known documentation test defect was detected in run #65, corrected in `fdb80eec`, and the correction passed run #67.
+- The evidence-recording ledger commit then passed run #69.
+- This ratification does not establish live Avi/FortiADC/OpenStack/Contrail/Infoblox interoperability or production qualification.

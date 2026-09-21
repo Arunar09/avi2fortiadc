@@ -159,6 +159,16 @@ class MigrationEvent:
         d["sanitized"] = self.sanitized
         return d
 
+    def to_sanitized_dict(self) -> dict:
+        """Return an artifact-safe event record without raw secret-bearing fields."""
+        d = asdict(self)
+        d["message"] = sanitize(self.message)
+        d["object_name"] = sanitize(self.object_name)
+        d["object_uuid"] = sanitize(self.object_uuid)
+        d["detail"] = json.loads(sanitize(json.dumps(self.detail, default=str))) if self.detail else {}
+        d["sanitized"] = self.sanitized
+        return d
+
     def console_line(self) -> str:
         colour = _COLOURS.get(self.level, "") if _USE_COLOUR else ""
         reset  = _RESET if _USE_COLOUR else ""
@@ -207,7 +217,7 @@ class EventBus:
                 for line in detail_str.splitlines():
                     print(f"    {line}")
         if self._log_file:
-            self._log_file.write(json.dumps(event.to_dict()) + "\n")
+            self._log_file.write(json.dumps(event.to_sanitized_dict()) + "\n")
             self._log_file.flush()
         return event
 

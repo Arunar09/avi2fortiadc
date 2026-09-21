@@ -2,8 +2,8 @@
 
 | ID | Area | Test | Evidence required | Current status |
 |---|---|---|---|---|
-| Q0-001 | Repository | Unit/security tests pass | CI or local test output | NOT-VERIFIED |
-| Q0-002 | Secrets | No credentials in generated artifacts | sanitized artifact scan | NOT-VERIFIED |
+| Q0-001 | Repository | Unit/security tests pass | CI or local test output | PASS — Offline Qualification run #83 (commit 003ad437) |
+| Q0-002 | Secrets | No credentials in generated artifacts | sanitized artifact scan | PASS — security artifact redaction tests in Offline Qualification run #83 (commit 003ad437) |
 | Q1-001 | Avi | Controller/API version | read-only version output | NOT-TESTED |
 | Q1-002 | Avi | Tenant discovery isolation | tenant-scoped evidence | NOT-TESTED |
 | Q1-003 | Avi | Complete object inventory | inventory counts/list | NOT-TESTED |

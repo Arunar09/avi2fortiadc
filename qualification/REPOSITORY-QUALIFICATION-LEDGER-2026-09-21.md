@@ -102,3 +102,54 @@ The evidence-recording ledger commit is d4e8e697c44108e82d55351df44742fbf870c9fe
 - Workflow conclusion: success
 
 This closes the documentation-audit evidence chain.
+
+
+## Q0-DOC-CONSISTENCY-001 — canonical documentation and claim-boundary audit
+
+### Work performed
+
+The documentation set was reorganized into a canonical docs/ hierarchy and expanded to cover:
+
+- product scope and lifecycle;
+- operating model and tenant sequencing;
+- architecture and data flow;
+- object mapping boundaries;
+- unsupported/manual/blocked features;
+- DataScript migration;
+- GSLB migration;
+- OpenStack/Contrail/Infoblox/DNS dependencies;
+- security and data handling;
+- CLI, wizard and web-console entry points;
+- qualification method;
+- runbook/troubleshooting references.
+
+Root USER-GUIDE.md, ARCHITECTURE.md and SECURITY.md were reduced to compatibility pointers to prevent duplicate documentation drift.
+
+Operational claims were qualified where repository evidence does not establish live behavior, including universal idempotency, rollback safety/atomicity, DNS propagation timing and production qualification.
+
+A repository documentation-consistency test was added at tests/test_documentation_consistency.py. It checks the canonical documentation set, documented entrypoints, known unqualified operational overclaims, root compatibility pointers, and preservation of non-PASS live qualification statuses.
+
+### Commits
+
+- 1e7a1de7ce0ef7e00429cfc2bc40eca945bbc589 through b955f9b2b90fad7bc864a94666a009de3934da42 — canonical documentation additions.
+- 6d5b34530c153ea4fa19e0f4129effb64fc27325 — canonical user guide rewrite.
+- 49af293f0062ca226502a913b5ee7c900c318732 — architecture alignment.
+- dffaafed19a7c1dd627b70cd8e14d938ed80e1ee — security alignment.
+- 80da10929da255a11d4b733b5f456069f6185c82 — troubleshooting claim qualification.
+- e152250f3bc1dca8fc66abab81e153502099e576 — root user-guide compatibility pointer.
+- 4eba38b6ac0825c28193f8b7065f67a747e56e75 — root architecture compatibility pointer.
+- 8001839afa8f3d68b27c388afaa19841221c6ec6 — root security compatibility pointer.
+- 0c7c26fe98b11465207dd8aa979df2c37040ece7 — README documentation/qualification entry points.
+- b15a3549acd569a2861149fa4c659735fa117e85 — documentation consistency tests.
+
+### Executed evidence
+
+The repository workflow is configured to compile Python and run the full pytest suite on pushes to hardening branches and pull requests to main.
+
+The latest documentation-consistency commit has been pushed, but a completed CI result for b15a3549 has not been observed through the available GitHub workflow/status interface in this session.
+
+### Qualification state
+
+NOT-RATIFIED — Q0-DOC-CONSISTENCY-001.
+
+No PASS is recorded until the completed workflow result for the current work is observed and reviewed.

@@ -14,7 +14,7 @@ Everything works, including the full pipeline, governance, lock, and audit chain
 
 ```bash
 # 1. Install test dependencies
-cd avi-fortiadc-migration-v0.8
+cd avi2fortiadc
 pip install pytest pytest-mock pyyaml requests
 
 # 2. Run the full offline test suite

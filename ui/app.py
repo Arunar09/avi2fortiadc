@@ -45,6 +45,7 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_SECURE"] = os.environ.get("FLASK_SESSION_COOKIE_SECURE", "false").lower() == "true"
     app.config["PERMANENT_SESSION_LIFETIME"] = 3600
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
 
     # Ensure runtime directories exist
     for dir_key in ["STATE_DIR", "REPORTS_DIR", "DISCOVERY_DIR", "LOGS_DIR", "FORTIADC_DIR"]:

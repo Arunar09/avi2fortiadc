@@ -111,7 +111,7 @@ Delete the existing VS in FortiADC (if leftover), or rename it in `fortiadc/<env
 ## 6. Deployment Issues
 
 ### VS shows DOWN immediately after deploy
-Expected — wait 60 seconds for first health check cycle. If still DOWN after 2 minutes:
+The timing below is a diagnostic starting point, not a universal target guarantee. Validate the target release's health-check timing. If the VS remains DOWN,
 
 1. Check pool member health: FortiADC UI → Server Load Balance → Real Server Pool
 2. Verify pool members are reachable from FortiADC (may differ from AVI network path)
@@ -122,7 +122,7 @@ Expected — wait 60 seconds for first health check cycle. If still DOWN after 2
 - HSM-backed certs cannot be exported from AVI — new cert required from CA
 
 ### Partial deployment — some objects failed
-Re-run deploy. The deployer is idempotent — existing objects are skipped, failed ones retried.
+Do not assume a blanket idempotency guarantee. Review the deployment/audit result and the target state first, then re-run only after confirming the generated configuration and target scope. The deployer has existence/update handling, and the repository security suite verifies create-then-update behavior for a representative object. Complete repeated-run behavior must be qualified on the exact target release.
 
 ---
 
@@ -139,7 +139,7 @@ export INFOBLOX_VIEW="internal"   # or "default" or your view name
 If VIPs are in Contrail DNS (not Infoblox), manual DNS update is required — consult your DNS team.
 
 ### Traffic still going to AVI after cutover
-DNS TTL has not expired. Wait for the TTL period (60s if pre-lowered). Application teams can flush:
+DNS propagation depends on resolver/client behavior and the actual TTL. Confirm the authoritative record and effective TTL first. Application teams can flush local caches when appropriate:
 ```bash
 sudo systemd-resolve --flush-caches   # Linux
 ipconfig /flushdns                     # Windows

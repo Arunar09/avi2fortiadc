@@ -73,11 +73,11 @@ parallel_run:
 
 # ── LLM Gateway (OPTIONAL) ────────────────────────────────────────────────────
 # All LLM calls route through a configurable internal gateway.
-# No direct connections to cloud LLM APIs — data sovereignty enforced.
+# Requests use the configured internal gateway; gateway policy determines whether an external service is reached.
 #
 # Gateway modes:
 #   opsai   — OpsAI internal Ollama (air-gapped, preferred)
-#             Laptop quick-start: brew install ollama && ollama pull mistral:7b && ollama serve
+#             Local Ollama setup is environment-specific and should follow the approved platform baseline.
 #   proxy   — Enterprise HTTP proxy to approved external LLM
 #   apigw   — Internal API Gateway (Kong, AWS APIM, Azure APIM)
 #   disabled — No LLM — tool runs deterministic-only (default)

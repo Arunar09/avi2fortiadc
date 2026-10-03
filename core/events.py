@@ -51,9 +51,33 @@ _USE_COLOUR = sys.stdout.isatty()
 
 # ── Sanitiser ────────────────────────────────────────────────────────────────
 # Replace environment-specific values with generic placeholders.
-# The sanitized text is safe to paste into any LLM.
+# Sanitized output is intended for external analysis, but must still be reviewed before sharing.
 
 _SANITISE_PATTERNS: list[tuple[re.Pattern, str]] = [
+    # Private key / certificate blocks.
+    (re.compile(r"-----BEGIN [^-\n]+-----.*?-----END [^-\n]+-----", re.IGNORECASE | re.DOTALL),
+     lambda m, _: "[KEY_MATERIAL_REDACTED]"),
+
+    # Credentials embedded in URLs or authority-like values.
+    (re.compile(r"((?:https?://)?)([^:/\s@]+):([^@\s]+)@", re.IGNORECASE),
+     lambda m, _: f"{m.group(1)}[USER_REDACTED]:[PASSWORD_REDACTED]@"),
+
+    # Common authentication headers and cookies.
+    (re.compile(r"(?im)\b(authorization|proxy-authorization|cookie|set-cookie)\s*:\s*[^\r\n]+"),
+     lambda m, _: f"{m.group(1)}: [CREDENTIAL_REDACTED]"),
+
+    # JWT-like bearer values.
+    (re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b"),
+     lambda m, _: "[JWT_REDACTED]"),
+
+    # Common secret/token query parameters.
+    (re.compile(r"([?&](?:token|access_token|api[_-]?key|secret|password|passwd|credential|auth)=)[^&#\s]+", re.IGNORECASE),
+     lambda m, _: f"{m.group(1)}[REDACTED]"),
+
+    # IPv6 addresses (with optional CIDR).
+    (re.compile(r"(?<![A-Za-z0-9])(?:[0-9A-Fa-f]{1,4}:){2,7}[0-9A-Fa-f]{0,4}(?:/\d{1,3})?(?![A-Za-z0-9])"),
+     lambda m, _c={}: f"[IP6_{_c.setdefault(m.group().lower(), len(_c) + 1)}]"),
+
     # IPv4 addresses (keep structure, replace octets)
     (re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?\b"),
      lambda m, _c={}: f"[IP_{_c.setdefault(m.group(), len(_c) + 1)}]"),
@@ -68,10 +92,14 @@ _SANITISE_PATTERNS: list[tuple[re.Pattern, str]] = [
                 r"[a-zA-Z]{2,}\b"),
      lambda m, _c={}: f"[HOSTNAME_{_c.setdefault(m.group().lower(), len(_c) + 1)}]"),
 
-    # Passwords / tokens in JSON-like context
-    (re.compile(r'"(?:password|token|secret|key|credential)"\s*:\s*"[^"]{4,}"',
+    # Passwords / tokens in JSON-like context, including common API-key names.
+    (re.compile(r'"(?:password|passwd|token|access_token|api[_-]?key|secret|client_secret|private_key|credential)"\s*:\s*"[^"]*"',
                 re.IGNORECASE),
-     lambda m, _: '"[CREDENTIAL]": "[REDACTED]"'),
+     lambda m, _: f'{m.group().split(":")[0]}: "[REDACTED]"'),
+
+    # Unquoted key/value forms commonly emitted in logs.
+    (re.compile(r'(?i)\b(?:password|passwd|token|access_token|api[_-]?key|secret|client_secret|private_key|credential)\s*[:=]\s*[^\s,;]+'),
+     lambda m, _: "[CREDENTIAL_REDACTED]"),
 
     # Bearer tokens
     (re.compile(r"Bearer\s+[A-Za-z0-9._\-]{20,}", re.IGNORECASE),
@@ -110,7 +138,7 @@ class MigrationEvent:
 
     @property
     def sanitized(self) -> str:
-        """LLM-safe representation — no IPs, hostnames, UUIDs, credentials."""
+        """Sanitized representation; review before external sharing."""
         parts = [
             f"[{self.level.value}] [{self.phase.value}]",
             f"Type: {self.object_type}" if self.object_type else "",
@@ -128,6 +156,16 @@ class MigrationEvent:
 
     def to_dict(self) -> dict:
         d = asdict(self)
+        d["sanitized"] = self.sanitized
+        return d
+
+    def to_sanitized_dict(self) -> dict:
+        """Return an artifact-safe event record without raw secret-bearing fields."""
+        d = asdict(self)
+        d["message"] = sanitize(self.message)
+        d["object_name"] = sanitize(self.object_name)
+        d["object_uuid"] = sanitize(self.object_uuid)
+        d["detail"] = json.loads(sanitize(json.dumps(self.detail, default=str))) if self.detail else {}
         d["sanitized"] = self.sanitized
         return d
 
@@ -179,7 +217,7 @@ class EventBus:
                 for line in detail_str.splitlines():
                     print(f"    {line}")
         if self._log_file:
-            self._log_file.write(json.dumps(event.to_dict()) + "\n")
+            self._log_file.write(json.dumps(event.to_sanitized_dict()) + "\n")
             self._log_file.flush()
         return event
 

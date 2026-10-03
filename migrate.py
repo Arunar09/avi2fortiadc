@@ -21,6 +21,7 @@ import argparse
 import json
 import logging
 import sys
+import os
 from pathlib import Path
 
 # ── Windows UTF-8 output fix ──────────────────────────────────────────────────
@@ -76,7 +77,7 @@ def _get_fortiadc_client(cfg: dict, env: str, dry_run: bool = True):
     return FortiADCClient(
         host       = cfg["fortiadc"]["host"],
         username   = cfg["fortiadc"]["username"],
-        password   = cfg["fortiadc"]["password"],
+        password   = os.environ.get("LB_MIGRATION_TARGET_PASSWORD", cfg["fortiadc"].get("password", "")),
         vdom       = env_cfg.get("fortiadc_vdom", cfg["fortiadc"].get("vdom", "root")),
         verify_ssl = cfg["fortiadc"].get("verify_ssl", True),
         dry_run    = dry_run,

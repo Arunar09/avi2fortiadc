@@ -434,7 +434,7 @@ class TestCompatibilityAnalyser:
         from analyzers.compatibility import analyse_compatibility, Compat
         profiles = build_dependency_graph(sample_discovery)
         results  = analyse_compatibility(sample_discovery, profiles)
-        hm_results = [r for r in results if r.object_type == "healthmonitor"
+        hm_results = [r for r in results if r.object_type == "HealthMonitor"
                       and r.object_name == "hm-http-web"]
         assert hm_results
         assert hm_results[0].status == Compat.AUTO
@@ -914,6 +914,17 @@ class TestStrictImportContract:
             "gslb_services": [],
             "alert_configs": [],
             "connections": [],
+            "vs_vips": [],
+            "pool_groups": [],
+            "dns_policies": [],
+            "gslb_global": [],
+            "gslb_geo_db": [],
+            "clouds": [],
+            "tenants": [],
+            "vrf_contexts": [],
+            "ip_addr_groups": [],
+            "ipam_dns_providers": [],
+            "networks": [],
         }
 
         discovery = import_discovery_payload(payload, env_name="env-test", bus=mock_bus)
@@ -954,6 +965,17 @@ class TestStrictImportContract:
             "gslb_services": [],
             "alert_configs": [],
             "connections": [],
+            "vs_vips": [],
+            "pool_groups": [],
+            "dns_policies": [],
+            "gslb_global": [],
+            "gslb_geo_db": [],
+            "clouds": [],
+            "tenants": [],
+            "vrf_contexts": [],
+            "ip_addr_groups": [],
+            "ipam_dns_providers": [],
+            "networks": [],
         }
 
         with pytest.raises(ValueError) as exc:
@@ -1011,7 +1033,7 @@ class TestStrictImportContract:
         commit = commit_import_scope(dirs, "env-import")
         assert commit["success"] is True
 
-        ledger_path = tmp_dir / "state" / "env-import-ledger.json"
+        ledger_path = tmp_dir / "state" / "env-import" / "ledger.json"
         assert ledger_path.exists()
         ledger_data = json.loads(ledger_path.read_text(encoding="utf-8"))
         assert ledger_data["phases"]["discover"]["status"] in ("done", "completed")
@@ -1041,7 +1063,7 @@ class TestStrictImportContract:
         assert result["success"] is False
         assert result.get("decision_required") is True
         assert result.get("normalized_from_raw") is True
-        manifest_path = tmp_dir / "state" / "env-raw-decision-manifest.json"
+        manifest_path = tmp_dir / "state" / "env-raw" / "decision-manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         assert manifest["mapping_approvals"]["resolved"] is True
 
@@ -1218,7 +1240,9 @@ class TestAllKeysImportScopeV2:
             encoding="utf-8",
         )
 
-        events = get_recent_activity({"logs_dir": str(logs_dir)}, env="env-a")
+        result = get_recent_activity({"logs_dir": str(logs_dir)}, env="env-a")
+        events = result["events"]
+        assert result["total"] == 1
         assert len(events) == 1
         assert events[0]["_source"] == "env-a"
         assert events[0]["message"] == "stage"

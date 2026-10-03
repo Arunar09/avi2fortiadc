@@ -1,170 +1,248 @@
-# Avi → FortiADC Migration Tool — User Guide
+# AVI → FortiADC Migration Tool — User Guide
 
-This guide covers the complete migration process from VMware Avi (NSX Advanced Load Balancer) to FortiADC using this tool.
+This is the canonical operator guide. It describes the repository implementation and clearly separates implemented behavior from target-environment qualification.
 
----
+## 1. Prerequisites
 
-## 1. Introduction
+### Host
 
-The Avi → FortiADC Migration Tool is a modular, air-gapped framework designed to automate the translation of load balancer configurations.
+- Python 3.8+; Python 3.11+ is recommended.
+- Linux, macOS or Windows/WSL2.
+- Network access to Avi and FortiADC for live phases.
+- Air-gapped operation is supported when dependencies are bundled.
 
-### Key Principles
-- **Air-Gapped Compliance**: Zero internet required. All dependencies are bundled.
-- **Deterministic**: Every transformation is based on explicit mapping tables, not AI inference.
-- **Auditable**: Every action is cryptographically chained and exported for SIEM.
-- **Safety First**: Dry-run mode by default. Explicit human approval for all mutations.
+### Avi
 
----
+Use a read-only service account scoped to the tenant being migrated. The repository targets Avi API version 22.1.5; confirm the actual controller version before qualification.
+
+### FortiADC
+
+Use an account authorized for the target VDOM. REST API availability, API paths and object semantics must be validated against the exact FortiADC release.
+
+### Infoblox
+
+Only required for the DNS workflow when Infoblox is the authoritative change system. Validate WAPI version, DNS views, record permissions and rollback behavior.
 
 ## 2. Installation
 
-The tool is designed for deployment on a jump host or management server with connectivity to both Avi and FortiADC.
+    bash install.sh
+    bash install.sh --check
 
-```bash
-# 1. Extract the package
-unzip avi-fortiadc-migration.zip
-cd avi-fortiadc-migration
+For an internet-connected packaging host:
 
-# 2. Run the offline installer
-# This validates Python availability and bundles required libraries
-bash install.sh
+    bash install.sh --bundle
 
-# 3. Create your configuration
-cp config.example.yaml config.yaml
-```
+Transfer the resulting package to the air-gapped host and run the normal installer.
 
----
+Do not place config.yaml into source control.
 
 ## 3. Interfaces
 
-### 3.1 Web Console (Recommended)
-The tool provides a premium dark-themed web console for managing migrations visually.
+### Web console
 
-```bash
-python run_ui.py
-# Open http://127.0.0.1:5000 in your browser
-```
+    python3 run_ui.py
 
-> [!IMPORTANT]
-> **Qualified Environments**: The Dashboard only displays "Qualified" environments. An environment is qualified once it has a valid Avi configuration snapshot (stored as `raw-snapshot.json` in the state folder). Incomplete imports or failed discovery attempts may create "zombie" folders on disk that remain hidden from the UI to prevent clutter.
+Default binding is 127.0.0.1:5000. The launcher supports host/port/debug options and corresponding environment variables.
 
-### 3.2 Command Line Interface (CLI)
-The primary CLI tool is `migrate.py`.
+The UI is an operator surface. A UI state or label is not itself production qualification.
 
-```bash
-python migrate.py --help
-```
+### CLI
 
-### 3.3 Guided Wizard
-A terminal-based wizard for step-by-step guidance.
+    python3 migrate.py --help
 
-```bash
-python wizard.py
-```
+The checked-in migrate.py parser is the authoritative source for exact CLI options.
 
----
+### Wizard
 
-## 4. Configuration (`config.yaml`)
+    python3 wizard.py
 
-Configuration is stored in `config.yaml`. This file is git-ignored as it contains sensitive credentials.
+The wizard provides guided phase execution and resumable state.
 
-```yaml
-avi:
-  controller: "https://avi-ctrl.local"
-  username: "migration-viewer"
-  password: "..." # Or export MIGRATION_AVI_PASS
+## 4. Configuration
 
-fortiadc:
-  host: "https://fortiadc.local"
-  username: "migration-admin"
-  password: "..." # Or export MIGRATION_FADC_PASS
+The minimum configuration contains:
 
-environments:
-  - name: "tenant-dev-b"
-    avi_tenant: "Tenant-Dev-B"
-    fortiadc_vdom: "VDOM-Dev-B"
-```
+- Avi controller, username and API version.
+- FortiADC host, username and VDOM.
+- One or more environment mappings.
+- Optional LLM gateway settings.
 
----
+Prefer the documented environment-variable password overrides where available. Protect config.yaml with restrictive filesystem permissions.
 
-## 5. Migration Pipeline
+## 5. Migration lifecycle
 
-The migration proceeds through 8 deterministic phases:
+### Phase 1 — Discover
 
-1. **Discovery**: Snapshots Avi configuration using read-only API access.
-2. **Analysis**: Classifies objects and runs risk pattern detectors (e.g., DataScript detection).
-3. **Transformation**: Generates FortiADC API payloads.
-4. **Dry-Run**: Validates FortiADC readiness without making changes.
-5. **Deployment**: Creates objects in FortiADC.
-6. **Parallel Run**: Ongoing health checks while Avi remains primary.
-7. **DNS Cutover**: Triggers Infoblox/DNS updates to switch traffic.
-8. **Verification**: Post-cutover drift and health analysis.
+Read Avi configuration through the source API.
 
----
+Typical command:
 
-## 6. Importing Offline Configuration
+    python3 migrate.py discover --env Tenant-Dev-B
 
-If you do not have live API access to Avi, use the analyzer to generate normalized discovery JSON, then import that file.
+Discovery is read-only with respect to Avi. The result is stored under discovery/.
 
-1. Navigate to the **Import** tab in the Web Console.
-2. Provide a name for the environment.
-3. Upload the analyzer-generated normalized `.json` file.
-4. The tool validates the strict schema and starts the pipeline from the **Discovery** phase.
+Collected families include virtual services, VIPs, pools, health monitors, SSL objects, application/network/persistence profiles, policies, DataScripts, SE groups, GSLB data, cloud/tenant/network context and external connections.
 
----
+### Phase 2 — Import when using offline source data
 
-## 7. Knowledge Base & RAG
+The importer accepts normalized discovery JSON and rejects raw Avi exports when the strict import contract is being used.
 
-The tool includes a built-in, offline **Retrieval-Augmented Generation (RAG)** knowledge base. Use it to query migration facts, mapping tables, and archived learnings.
+    python3 migrate.py import-avi-json --input normalized-discovery.json --env Tenant-Dev-B
 
-```bash
-# Index current knowledge (docs, mappings, previous migrations)
-python migrate.py rag index
+The import classifier preserves pipeline, GSLB-related, context and noise categories. GSLB keys are deliberately classified before the generic context fallback.
 
-# Search for specific issues
-python migrate.py rag ask --query "How do I handle pool monitoring differences?"
-```
+### Phase 3 — Analyze
 
-The Knowledge Base is also accessible via the **Knowledge Base** tab in the Web Console.
+Analysis is local to the discovery snapshot and produces compatibility/risk information.
 
----
+    python3 migrate.py analyse --input discovery/Tenant-Dev-B.json
 
-## 8. Rollback Procedures
+Review:
 
-Rollback is automated and safe. Avi remains live throughout the process until a final cutover is confirmed.
+- AUTO/WARN/MANUAL/BLOCKED results;
+- dependency/impact information;
+- risk patterns;
+- complexity;
+- manual resolution requirements.
 
-```bash
-# Revert DNS to Avi endpoints
-bash scripts/dns-cutover.sh --env tenant-dev-b --rollback
+### Phase 4 — Transform
 
-# Clean up FortiADC staging objects
-bash scripts/rollback.sh --env tenant-dev-b --execute
-```
+Transformation uses explicit repository mappings.
 
-## 9. State Management & Troubleshooting
+    python3 migrate.py transform --input discovery/Tenant-Dev-B.json
 
-### 9.1 The `state/` Directory
-All decisions, manifests, and snapshots are stored in the local `state/` directory. Each environment has its own subfolder.
-- **`decision-manifest.json`**: The source of truth for all operator decisions (mappings, excludes, overrides).
-- **`raw-snapshot.json`**: The original configuration imported from Avi.
-- **`ledger.json`**: A cryptographically signed record of every phase completed.
+The generated target configuration is stored under fortiadc/. Items that cannot be safely transformed remain visible as manual/unsupported decisions.
 
-### 9.2 Purging Orphans
-If you see directories in `state/` that do not appear in the Web Console:
-1. They are likely "unqualified" fragments from failed or partial operations.
-2. **Deletion**: Use the **Trash Can** icon on the Dashboard to purge an environment.
-3. **Manual Purge**: If a folder is hidden (no UI button), it can be manually deleted from the `state/` and `logs/` directories.
+A deterministic transform should be reproducible for the same input and implementation/configuration; this does not mean the resulting target behavior is automatically equivalent.
 
-### 9.3 Troubleshooting CSRF / Session Errors
-If you encounter "Bad Request: CSRF token missing" or session timeouts:
-- Ensure `run_ui.py` is running and the `SECRET_KEY` in `ui/app.py` is stable.
-- The tool now uses a persistent secret to prevent session dropouts across application restarts.
+### Phase 5 — Dry-run
 
----
+Run target validation before any mutation.
 
-## 10. Infrastructure Orchestration (V-A-N-R)
+    python3 migrate.py deploy --fortiadc-config fortiadc/Tenant-Dev-B-config.json --env Tenant-Dev-B --dry-run
 
-The tool uses a coordinated **V-A-N-R (VDOM-App-Network-Route)** mapping model.
-- **Batch Commits**: Instead of row-by-row saving, use the **"Commit All Infrastructure Decisions"** button to validate your entire mapping strategy at once.
-- **Merge Detection**: The UI automatically detects and flags when multiple Avi tenants are being consolidated into a single FortiADC VDOM.
-- **Live Topology**: Decisions made in the Orchestrator reflect immediately in the Topology Verification graph.
+Review target reachability, VDOM, conflicts, payload scope and approval evidence before execution.
+
+### Phase 6 — Deploy
+
+    python3 migrate.py deploy --fortiadc-config fortiadc/Tenant-Dev-B-config.json --env Tenant-Dev-B --execute
+
+The deployer uses existence/update handling and a dependency-aware order. Repository tests demonstrate create-then-update behavior for a representative object, but complete idempotency across every target object and pre-existing configuration must be qualified on the exact FortiADC release.
+
+### Phase 7 — Verify and parallel run
+
+Use the repository's verification and operational checks after deployment.
+
+    python3 migrate.py ops-check --env Tenant-Dev-B
+    bash scripts/parallel-run-check.sh Tenant-Dev-B
+
+Parallel-run duration is a change-management decision. Any stated minimum in the runbook is a planning recommendation, not repository qualification evidence.
+
+### Phase 8 — DNS cutover
+
+    bash scripts/dns-cutover.sh --env Tenant-Dev-B --dry-run
+    bash scripts/dns-cutover.sh --env Tenant-Dev-B --execute
+
+The script contains Infoblox-oriented workflow logic. Validate the exact WAPI version, DNS view, records and permissions before live execution.
+
+### Phase 9 — Rollback
+
+    bash scripts/rollback.sh --env Tenant-Dev-B --dry-run
+    bash scripts/rollback.sh --env Tenant-Dev-B --execute
+
+Rollback can disable FortiADC virtual servers, restore DNS from a backup when available and check Avi health. It is not a transactionally atomic reversal. Test the complete procedure before production.
+
+## 6. Manual and blocked features
+
+The tool must not silently discard unsupported configuration.
+
+Common manual classes:
+
+- DataScripts.
+- HSM/non-exportable certificates.
+- Product-specific WAF/policy/authentication behavior.
+- Health monitors whose semantics differ.
+- GSLB semantics without a verified target mapping.
+- Infrastructure dependencies requiring OpenStack/Contrail/DNS changes.
+
+See UNSUPPORTED-FEATURES.md, DATASCRIPT-MIGRATION.md and GSLB-MIGRATION.md.
+
+## 7. Audit and evidence
+
+Typical audit operations include:
+
+    python3 migrate.py audit chain --log logs/Tenant-Dev-B-deploy.jsonl
+    python3 migrate.py audit verify --log logs/Tenant-Dev-B-deploy.jsonl
+    python3 migrate.py audit cef --log logs/Tenant-Dev-B-deploy.jsonl --output siem.cef
+
+The audit chain is tamper-evident; it is not a replacement for external SIEM controls.
+
+Retain discovery/analysis/decision/target/deployment/verification/cutover evidence according to the qualification plan.
+
+## 8. LLM advisory
+
+LLM features are optional.
+
+The supported model is advisory:
+
+sanitized source context → advisory analysis → human review → implementation/test
+
+LLM output must not be treated as an automatic production deployment decision.
+
+If an external gateway is configured, sanitized advisory material may leave the local environment. Review the sanitized pack and gateway policy before enabling it.
+
+## 9. Offline testing
+
+Run:
+
+    python3 -m pytest tests/ -v
+
+The repository also provides mock-service test material under tests/.
+
+Unit/mock evidence demonstrates repository behavior. It does not establish live Avi/FortiADC/Infoblox/OpenStack/Contrail compatibility.
+
+## 10. State and artifacts
+
+Important locations:
+
+- discovery/ — source discovery.
+- reports/ — analysis and sanitized reports.
+- fortiadc/ — generated target payloads.
+- state/ — decision manifests, ledgers and governance state.
+- logs/ — event and audit logs.
+- qualification/ — qualification matrix and evidence.
+
+## 11. Production gate
+
+Do not treat a migration as production-qualified until the qualification matrix contains the required evidence for:
+
+- exact source/target versions;
+- tenant isolation;
+- target API behavior;
+- repeated deployment;
+- unrelated-target preservation;
+- failure recovery;
+- rollback;
+- DNS cutover/rollback;
+- parallel run;
+- audit integrity;
+- security permissions.
+
+The absence of live evidence is a qualification boundary, not a PASS.
+
+## 12. Related documents
+
+- 00-PRODUCT-OVERVIEW.md
+- OPERATING-MODEL.md
+- ARCHITECTURE.md
+- OBJECT-MAPPING-MATRIX.md
+- UNSUPPORTED-FEATURES.md
+- DATASCRIPT-MIGRATION.md
+- GSLB-MIGRATION.md
+- ENVIRONMENT-DEPENDENCIES.md
+- SECURITY.md
+- CLI-REFERENCE.md
+- WEB-CONSOLE.md
+- RUNBOOK.md
+- TROUBLESHOOTING.md
+- QUALIFICATION.md

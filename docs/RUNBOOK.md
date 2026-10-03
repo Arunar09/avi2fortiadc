@@ -6,6 +6,8 @@
 **Audience:** NOC, on-call engineers, change managers  
 **Use this document:** During and after migration maintenance windows
 
+> **Qualification status:** This runbook is an operational template. FortiADC API paths, CLI syntax, UI labels, Infoblox WAPI paths, timing thresholds, and platform-specific behavior shown below are examples/planning values unless separately validated against the exact deployed releases. Do not treat this document as evidence of target-platform compatibility.
+
 ---
 
 ## 1. Quick Reference — Contacts and Access
@@ -207,10 +209,10 @@ Do not retry the migration until root cause is identified and resolved. File an 
 
 | Action | Typical time |
 |---|---|
-| FortiADC VS disabled | < 30 seconds |
-| Infoblox records restored | 1–2 minutes |
-| DNS propagation (60s TTL) | 1–2 minutes |
-| Application traffic restored | 2–5 minutes total |
+| FortiADC VS disabled | Planning estimate; validate in target environment |
+| Infoblox records restored | Planning estimate; validate in target environment |
+| DNS propagation (60s TTL) | Depends on resolver/client behavior; validate |
+| Application traffic restored | Planning estimate; validate in target environment |
 
 If DNS records were not lowered to 60s before cutover, propagation may take longer. In that case, application teams may need to flush local DNS cache.
 
@@ -302,7 +304,7 @@ python3 migrate.py deploy \
   --env <env> --execute
 ```
 
-The deployer is idempotent for already-existing objects (it skips objects that already exist with the same name).
+The deployer performs existence/update handling for already-existing objects. Complete idempotency, including preservation of unrelated target configuration, must be validated against the exact FortiADC release and target configuration before production use.
 
 ### 6.3 Monitoring FortiADC health ongoing
 
@@ -326,6 +328,8 @@ The migration tool's certificate audit (Pattern P04) will have flagged any near-
 ---
 
 ## 7. Known Operational Constraints
+
+> **Qualification note:** The differences in the table below are migration hypotheses/operational checks, not repository qualification results. Confirm each item against the exact Avi, FortiADC, OpenStack, and Contrail releases in the target environment before relying on it.
 
 These are FortiADC behaviours that differ from AVI and may affect day-2 operations.
 

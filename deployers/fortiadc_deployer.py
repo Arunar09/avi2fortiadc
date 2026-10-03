@@ -169,7 +169,7 @@ class FortiADCDeployer:
                 object_name=name,
                 detail={"error": str(e),
                         "path": path,
-                        "payload": payload},
+                        "payload_keys": list(payload.keys())},
             )
             return DeployResult(name=name, path=path, success=False,
                                 dry_run=False, error=str(e))

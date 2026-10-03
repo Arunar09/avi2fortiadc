@@ -278,7 +278,7 @@ python3 migrate.py deploy \
 cat scripts/rollback-dev-b.sh
 bash scripts/rollback-dev-b.sh --env dev-b --dry-run
 ```
-**Narrative:** "The rollback script is generated automatically the moment we deploy. One command returns everything to AVI. We never remove AVI until we're confident — it's always there as the fallback."
+**Narrative:** "The rollback procedure is prepared for the migration run. In this offline demo, we can exercise the scripted rollback workflow, but production rollback semantics must be validated against the actual FortiADC, DNS/Infoblox, and AVI environment. We never remove AVI until the migration has been qualified and the approved cutover/rollback procedure has been validated."
 
 ### Scene 6 — "We watch it every day" (Ops-check)
 

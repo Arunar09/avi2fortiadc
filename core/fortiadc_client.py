@@ -91,11 +91,18 @@ class FortiADCClient:
         return resp.json()
 
     def exists(self, path: str, name: str, vdom: Optional[str] = None) -> bool:
+        """Return False only for a confirmed 404; propagate all other failures.
+
+        Treating authentication, authorization, timeout, or transport failures
+        as "not found" could turn a safe update into an unintended create.
+        """
         try:
             self.get(f"{path}/{name}", vdom=vdom)
             return True
-        except Exception:
-            return False
+        except requests.HTTPError as exc:
+            if exc.response is not None and exc.response.status_code == 404:
+                return False
+            raise
 
     def close(self) -> None:
         self._session.close()

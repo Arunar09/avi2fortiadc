@@ -8,8 +8,8 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-lg-8">
+<div class="row justify-content-center">
+    <div class="col-12" style="max-width: 760px; margin: 0 auto;">
         {# ── Success State ── #}
         {% if result and result.success %}
         <div class="card mb-4 p-4 animate-fade-in shadow-sm" style="background: rgba(152, 195, 121, 0.08); border: 1px solid rgba(152, 195, 121, 0.25);">
@@ -77,27 +77,6 @@
         </div>
         {% endif %}
     </div>
-
-    <div class="col-lg-4">
-        <div class="card h-100" style="background: #161b22; border: 1px solid #30363d;">
-            <div class="card-header bg-transparent py-3" style="border-bottom: 1px solid #30363d;">
-                <h5 class="mb-0 font-monospace small uppercase tracking-wider" style="color: #61afef;">Supported Formats</h5>
-            </div>
-            <div class="card-body">
-                <ul class="list-unstyled mb-0">
-                    <li class="mb-4">
-                        <div class="text-light font-bold mb-1">● Normalized Discovery JSON</div>
-                        <p class="text-mini text-muted mb-0">Upload a raw Avi JSON export or a previously exported discovery file for strict validation and import.</p>
-                    </li>
-                </ul>
-                <div class="panel mt-4 p-3 rounded" style="background: #12161f; border: 1px solid #30363d;">
-                    <div class="text-mini text-muted italic">
-                        Environment isolation is enforced by sub-directory. Use the analyzer as the normalization step before importing.
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script>
@@ -110,16 +89,16 @@
     if (dropzone) {
         dropzone.addEventListener('dragover', (e) => { 
             e.preventDefault(); 
-            dropzone.style.borderColor = '#5b9cf6';
-            dropzone.style.backgroundColor = 'rgba(91, 156, 246, 0.05)';
+            dropzone.style.borderColor = '#61afef';
+            dropzone.style.backgroundColor = 'rgba(97, 175, 239, 0.08)';
         });
         dropzone.addEventListener('dragleave', () => { 
-            dropzone.style.borderColor = '#2a2f45';
+            dropzone.style.borderColor = '#30363d';
             dropzone.style.backgroundColor = 'transparent';
         });
         dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropzone.style.borderColor = '#2a2f45';
+            e.preventDefault(); 
+            dropzone.style.borderColor = '#30363d';
             dropzone.style.backgroundColor = 'transparent';
             if (e.dataTransfer.files.length) {
                 fileInput.files = e.dataTransfer.files;

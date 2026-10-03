@@ -350,7 +350,7 @@ class LLMGateway:
         headers = {
             "Content-Type":  "application/json",
             "Authorization": f"Bearer {api_key}",
-            "X-Tool-Version": "migration-tool-v0.8",
+            "X-Tool-Version": "migration-tool-v0.1.0",
             "X-Request-Source": "avi-fortiadc-migration",
         }
         payload = {

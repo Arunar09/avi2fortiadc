@@ -46,6 +46,10 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["SESSION_COOKIE_SECURE"] = os.environ.get("FLASK_SESSION_COOKIE_SECURE", "false").lower() == "true"
     app.config["PERMANENT_SESSION_LIFETIME"] = 3600
 
+    # Ensure runtime directories exist
+    for dir_key in ["STATE_DIR", "REPORTS_DIR", "DISCOVERY_DIR", "LOGS_DIR", "FORTIADC_DIR"]:
+        Path(app.config[dir_key]).mkdir(parents=True, exist_ok=True)
+
     # Identity DB
     identity_db = Path(app.config["STATE_DIR"]) / "identity.db"
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{identity_db}"

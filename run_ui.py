@@ -41,7 +41,20 @@ def main() -> None:
         sys.exit(1)
 
     print(f"[*] Port {port} is clear. Launching Migration Operator Console...")
-    app = create_app({"DEBUG": debug})
+    try:
+        app = create_app({"DEBUG": debug})
+    except RuntimeError as e:
+        print(f"\n[!][CONFIGURATION REQUIRED] {e}\n")
+        print("[*] Required environment variables before launching UI:")
+        print("    1. FLASK_SECRET_KEY: A secret key (at least 32 characters) for session encryption.")
+        print("       PowerShell:  $env:FLASK_SECRET_KEY = 'generate-a-secure-32-char-random-key!'")
+        print("       Linux/macOS: export FLASK_SECRET_KEY='generate-a-secure-32-char-random-key!'")
+        print("\n    2. MIGRATION_BOOTSTRAP_ADMIN_PASSWORD: Password for the 'admin' account (min 12 chars).")
+        print("       PowerShell:  $env:MIGRATION_BOOTSTRAP_ADMIN_PASSWORD = 'YourStrongPassword123!'")
+        print("       Linux/macOS: export MIGRATION_BOOTSTRAP_ADMIN_PASSWORD='YourStrongPassword123!'")
+        print("\nSee SECURITY.md for details.\n")
+        sys.exit(1)
+
     app.run(host=host, port=port, debug=debug)
 
 

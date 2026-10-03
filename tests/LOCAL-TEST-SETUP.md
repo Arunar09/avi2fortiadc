@@ -202,7 +202,7 @@ cat >> config.yaml << 'LLMCFG'
 
 llm_gateway:
   enabled:           true
-  mode:              opsai
+  mode:              ollama
   endpoint:          "http://localhost:11434"
   model:             "mistral:7b"
   timeout_seconds:   60

@@ -10,11 +10,11 @@ The tool is intelligent WITHOUT an LLM by applying:
   5. LLM pack builder  — prepares optimised prompts for external LLM use
 
 The sanitized output feeds into the LLM pack so engineers can paste
-directly into any external LLM (ChatGPT, Claude, internal OpsAI)
+directly into any external LLM (ChatGPT, Claude, self-hosted Ollama)
 without exposing environment details.
 
-The OpsAI connection: this module's output can be fed directly into
-the OpsAI knowledge base (docs/platform/) to make OpsAI aware of the
+Knowledge-base use: this module's output can be fed directly into
+a local RAG knowledge base (docs/platform/) to make the LLM aware of the
 migration state and able to answer questions about it.
 """
 from __future__ import annotations

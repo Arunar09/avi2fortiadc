@@ -6,7 +6,7 @@ ARCHITECTURE — NO DIRECT BACKEND CONNECTIONS:
   The tool never connects directly to any LLM API (OpenAI, Anthropic, etc.).
   All LLM requests route through a configurable enterprise gateway:
 
-  Tool → LLM Gateway (internal) → [OpsAI Ollama | Enterprise Proxy | API GW]
+  Tool → LLM Gateway (internal) → [Self-hosted Ollama | Enterprise Proxy | API GW]
                                           ↑
                          Air-gap compliant, audit-logged, rate-limited
 
@@ -18,7 +18,7 @@ ARCHITECTURE — NO DIRECT BACKEND CONNECTIONS:
   - Separation of concerns: LLM endpoint changes without touching tool code
 
 GATEWAY MODES (configured in config.yaml):
-  mode: "opsai"      → OpsAI internal Ollama (air-gapped, preferred)
+  mode: "ollama"     → Self-hosted Ollama (air-gapped, preferred; "opsai" is a deprecated alias)
   mode: "proxy"      → Enterprise HTTP proxy to approved external LLM
   mode: "apigw"      → Internal API Gateway (Kong, AWS API GW, etc.)
   mode: "disabled"   → No LLM — tool runs in deterministic-only mode
@@ -122,11 +122,15 @@ class LLMResponse:
 
 # ── Gateway configuration ────────────────────────────────────────────────────
 
+# Deprecated mode names → canonical names (kept for backward compatibility)
+_MODE_ALIASES = {"opsai": "ollama"}
+
+
 @dataclass
 class GatewayConfig:
-    mode:           str = "disabled"           # opsai | proxy | apigw | disabled
+    mode:           str = "disabled"           # ollama | proxy | apigw | disabled
     endpoint:       str = ""                   # internal gateway URL — never public API
-    model:          str = "llama3-opsai"       # model name at the gateway
+    model:          str = "llama3"             # model name at the gateway
     timeout_s:      int = 120
     max_tokens:     int = 1024
     temperature:    float = 0.1
@@ -147,10 +151,15 @@ class GatewayConfig:
         llm_cfg = cfg.get("llm_gateway", {})
         if not llm_cfg or not llm_cfg.get("enabled", False):
             return cls(mode="disabled")
+        mode = llm_cfg.get("mode", "disabled")
+        if mode in _MODE_ALIASES:
+            log.warning("llm_gateway.mode '%s' is deprecated; use '%s'",
+                        mode, _MODE_ALIASES[mode])
+            mode = _MODE_ALIASES[mode]
         return cls(
-            mode            = llm_cfg.get("mode", "disabled"),
+            mode            = mode,
             endpoint        = llm_cfg.get("endpoint", ""),
-            model           = llm_cfg.get("model", "llama3-opsai"),
+            model           = llm_cfg.get("model", "llama3"),
             timeout_s       = llm_cfg.get("timeout_seconds", 120),
             max_tokens      = llm_cfg.get("max_tokens", 1024),
             temperature     = llm_cfg.get("temperature", 0.1),
@@ -249,11 +258,12 @@ class LLMGateway:
         # Route to correct gateway mode
         t0 = time.monotonic()
         try:
-            if self._cfg.mode == "opsai":
-                response = self._call_opsai(full_prompt)
-            elif self._cfg.mode == "proxy":
+            mode = _MODE_ALIASES.get(self._cfg.mode, self._cfg.mode)
+            if mode == "ollama":
+                response = self._call_ollama(full_prompt)
+            elif mode == "proxy":
                 response = self._call_via_proxy(full_prompt)
-            elif self._cfg.mode == "apigw":
+            elif mode == "apigw":
                 response = self._call_via_apigw(full_prompt)
             else:
                 return LLMResponse(
@@ -289,9 +299,9 @@ class LLMGateway:
 
     # ── Gateway mode implementations ─────────────────────────────────────────
 
-    def _call_opsai(self, prompt: str) -> dict:
+    def _call_ollama(self, prompt: str) -> dict:
         """
-        OpsAI internal Ollama — preferred for air-gapped environments.
+        Self-hosted Ollama — preferred for air-gapped environments.
         Endpoint: internal Ollama REST API at configured internal URL.
         No credentials needed — Ollama is trusted-internal only.
         """

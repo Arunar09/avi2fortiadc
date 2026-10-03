@@ -636,8 +636,9 @@ def run_ops_check(env: str, config_path: str = "config.yaml",
     client = FortiADCClient(
         host=fadc_cfg.get("host", ""),
         username=fadc_cfg.get("username", ""),
-        password=fadc_cfg.get("password",
-                  os.environ.get("OPSAI_FORTIADC_PASSWORD", "")),
+        password=os.environ.get("LB_MIGRATION_TARGET_PASSWORD") or
+                 os.environ.get("OPSAI_FORTIADC_PASSWORD") or  # deprecated name
+                 fadc_cfg.get("password", ""),
         vdom=vdom,
         verify_ssl=fadc_cfg.get("verify_ssl", True),
         dry_run=False,

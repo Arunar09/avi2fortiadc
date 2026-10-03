@@ -59,7 +59,7 @@ class DataScriptCollector(BaseCollector):
                         "2. Use FortiADC WAF custom signatures for security logic",
                         "3. Move business logic to application layer",
                         "4. Use nginx/HAProxy sidecar for complex scripting needs",
-                        "5. Use OpsAI LLM (via sanitized output) for translation assistance",
+                        "5. Use the optional LLM gateway (via sanitized output) for translation assistance",
                     ],
                     "llm_hint": (
                         "Run: python3 migrate.py sanitize-datascript "

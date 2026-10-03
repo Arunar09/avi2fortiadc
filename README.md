@@ -1,5 +1,7 @@
 # AVI → FortiADC Migration Tool
 
+[![Offline Qualification](https://github.com/Arunar09/avi2fortiadc/actions/workflows/qualification.yml/badge.svg)](https://github.com/Arunar09/avi2fortiadc/actions/workflows/qualification.yml) [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) ![CI: Python 3.11](https://img.shields.io/badge/CI-Python_3.11-blue)
+
 **Enterprise-grade, air-gapped, fully deterministic migration framework.**  
 Migrate load balancer configuration from AVI Networks (VMware NSX Advanced Load Balancer)
 to FortiADC — safely, auditably, and without requiring any LLM or internet connection.
@@ -149,7 +151,7 @@ The repository's unit and mock tests do not by themselves establish compatibilit
 - Python 3.8 or later
 - `requests`, `pyyaml` (bundled in `vendor/` for air-gapped install)
 - Optional: Docker (for local test environment with mock servers)
-- Optional: Ollama (for local LLM advisory via OpsAI mode)
+- Optional: Ollama (for local LLM advisory via `ollama` mode)
 
 ---
 

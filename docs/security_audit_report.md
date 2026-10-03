@@ -44,7 +44,7 @@ The tool enforces **Separation of Duties (SoD)** at the Deployment Approval gate
 The LLM integration is hardened for enterprise use:
 - **Sanitization Layer**: All prompts are passed through a regex-based sanitizer in `core/llm_gateway.py` to redact IPs, UUIDs, FQDNs, and credentials.
 - **Hash-Only Logging**: Prompt content is NEVER logged. Instead, a SHA-256 hash is recorded for auditability without data exposure.
-- **Internal Routing**: Supports "OpsAI" (internal Ollama) or authenticated enterprise proxies only. Direct cloud API access is unsupported.
+- **Internal Routing**: Supports self-hosted Ollama (`ollama` mode) or authenticated enterprise proxies only. Direct cloud API access is unsupported.
 
 ---
 

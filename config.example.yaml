@@ -76,7 +76,7 @@ parallel_run:
 # Requests use the configured internal gateway; gateway policy determines whether an external service is reached.
 #
 # Gateway modes:
-#   opsai   — OpsAI internal Ollama (air-gapped, preferred)
+#   ollama  — Self-hosted Ollama (air-gapped, preferred; 'opsai' still accepted)
 #             Local Ollama setup is environment-specific and should follow the approved platform baseline.
 #   proxy   — Enterprise HTTP proxy to approved external LLM
 #   apigw   — Internal API Gateway (Kong, AWS APIM, Azure APIM)
@@ -88,7 +88,7 @@ parallel_run:
 #   llama3.1:8b  — 5 GB, best quality
 llm_gateway:
   enabled:           false                      # Set true to activate
-  mode:              opsai                      # opsai | proxy | apigw | disabled
+  mode:              ollama                     # ollama | proxy | apigw | disabled
   endpoint:          "http://localhost:11434"   # Internal gateway URL ONLY — no cloud
   model:             "mistral:7b"               # Pull first: ollama pull mistral:7b
   timeout_seconds:   120

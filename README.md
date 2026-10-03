@@ -23,6 +23,24 @@ to FortiADC — safely, auditably, and without requiring any LLM or internet con
 
 ---
 
+## Web Console Preview
+
+The migration console provides a self-contained, air-gapped web interface for orchestrating multi-tenant migrations and decision gates:
+
+| Pipeline Overview | Decision Center |
+|:---:|:---:|
+| ![Pipeline Overview](docs/images/ui-pipeline.png) | ![Decision Center](docs/images/ui-decisions-overview.png) |
+
+| Migration Impact & Heatmap | Configuration Inventory & Scope |
+|:---:|:---:|
+| ![Migration Impact Summary](docs/images/ui-migration-impact.png) | ![Configuration Inventory](docs/images/ui-configuration-inventory.png) |
+
+| Target Scope Selection & Virtual Services |
+|:---:|
+| ![Target Scope Selection](docs/images/ui-scope-selection.png) |
+
+---
+
 ## Quick start
 
 ```bash
@@ -33,8 +51,12 @@ bash install.sh
 cp config.example.yaml config.yaml
 # Edit: AVI controller URL, FortiADC host, credentials, environment names
 
-# 3. Launch guided wizard
+# 3. Launch guided wizard (CLI)
 python3 wizard.py
+
+# 4. Or launch the Migration Operator Console (Web UI)
+python3 run_ui.py
+# Open http://127.0.0.1:5000 in your browser
 ```
 
 The wizard walks through every phase with explanations, typed confirmations,

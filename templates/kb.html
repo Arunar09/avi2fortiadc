@@ -46,7 +46,7 @@
   <div class="kb-entry">
     <div class="kb-entry-title">
       {% if entry.source == 'docs' %}
-        <a href="#">{{ entry.title }}</a>
+        <a href="{{ url_for('main.kb_doc_view', filename=entry.filename) }}" style="color: #58a6ff; text-decoration: none; font-weight: 600;">{{ entry.title }}</a>
       {% else %}
         {{ entry.title }}
       {% endif %}
@@ -59,8 +59,11 @@
     <div class="kb-entry-excerpt">{{ entry.excerpt }}</div>
     {% endif %}
     {% if entry.source == 'docs' %}
-    <div class="text-small text-muted mt-1">
-      <code>docs/{{ entry.filename }}</code>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+      <div class="text-small text-muted">
+        <code>docs/{{ entry.filename }}</code>
+      </div>
+      <a href="{{ url_for('main.kb_doc_view', filename=entry.filename) }}" class="btn btn-ghost btn-sm" style="font-size:12px; padding:3px 10px;">Read Guide &rarr;</a>
     </div>
     {% elif entry.source == 'migration_learning' %}
     <div class="text-small text-muted mt-1">

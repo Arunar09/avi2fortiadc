@@ -20,6 +20,18 @@ def bootstrap_admin(app):
     with app.app_context():
         db.create_all()
 
+        # Migrate existing SQLite databases if columns are missing
+        try:
+            with db.engine.connect() as conn:
+                cols = {row[1] for row in conn.execute(db.text("PRAGMA table_info(user)")).fetchall()}
+                if "must_change_password" not in cols:
+                    conn.execute(db.text("ALTER TABLE user ADD COLUMN must_change_password BOOLEAN DEFAULT 0"))
+                if "password_expires_at" not in cols:
+                    conn.execute(db.text("ALTER TABLE user ADD COLUMN password_expires_at DATETIME"))
+                conn.commit()
+        except Exception:
+            pass
+
         if User.query.first():
             return
 
@@ -27,6 +39,20 @@ def bootstrap_admin(app):
         password = os.environ.get("MIGRATION_BOOTSTRAP_ADMIN_PASSWORD")
 
         if not password:
+            if app.config.get("ALLOW_DEFAULT_BOOTSTRAP", False):
+                default_pass = "Admin@Migration123!"
+                admin = User(username=username, role="admin,approver")
+                admin.set_password(default_pass, must_change=True, expires_in_days=7)
+                db.session.add(admin)
+                db.session.commit()
+                import logging
+                logging.getLogger(__name__).info(
+                    "[*] First-run setup: Default administrator created (Username: %s | Password: %s). "
+                    "Temporary login valid for 7 days. Please change upon first login.",
+                    username, default_pass
+                )
+                return
+
             raise RuntimeError(
                 "No local users exist. Set MIGRATION_BOOTSTRAP_ADMIN_PASSWORD "
                 "before starting the operator console for first-run provisioning."
@@ -39,9 +65,23 @@ def bootstrap_admin(app):
             raise RuntimeError("The insecure admin/admin bootstrap credential is not allowed.")
 
         admin = User(username=username, role="admin,approver")
-        admin.set_password(password)
+        admin.set_password(password, must_change=False)
         db.session.add(admin)
         db.session.commit()
+
+
+def change_password(user_id, current_password, new_password):
+    """Change a user's password verifying the current password."""
+    if not isinstance(new_password, str) or len(new_password) < 12:
+        return False, "New password must contain at least 12 characters."
+    user = User.query.get(user_id)
+    if not user:
+        return False, "User not found"
+    if not user.check_password(current_password):
+        return False, "Current password is incorrect."
+    user.set_password(new_password, must_change=False)
+    db.session.commit()
+    return True, "Password updated successfully"
 
 
 def create_user(username, password, roles="user"):

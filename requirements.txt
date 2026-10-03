@@ -4,6 +4,7 @@
 
 requests>=2.31.0,<3       # HTTP client for Avi + FortiADC API
 flask>=3.0.0               # Web interface
+markdown>=3.5              # Documentation renderer in web console
 pyyaml>=6.0,<7             # Config file parsing
 urllib3>=1.26,<3           # Bundled with requests, explicit for pinning
 certifi>=2024.0            # CA certificates for SSL

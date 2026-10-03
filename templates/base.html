@@ -52,7 +52,13 @@
         <span class="nav-icon">@</span> User Management
       </a>
       {% endif %}
-      
+
+      <a href="{{ url_for('main.change_password') }}"
+         target="_self"
+         class="{{ 'active' if request.endpoint == 'main.change_password' else '' }}">
+        <span class="nav-icon">*</span> Change Password
+      </a>
+
       <a href="{{ url_for('main.logout') }}" target="_self">
         <span class="nav-icon">←</span> Logout
       </a>
@@ -66,6 +72,20 @@
 
   <!-- Main content -->
   <main class="main-content">
+
+    {% if current_user.is_authenticated and current_user.must_change_password %}
+      {% if current_user.is_default_password_expired() %}
+        <div class="alert alert-error mb-3" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>⛔ <strong>Password Expired:</strong> Your temporary installation password has expired (7-day limit reached). You must create a new password to continue.</span>
+          <a href="{{ url_for('main.change_password') }}" class="btn btn-primary btn-sm" style="margin-left:12px;white-space:nowrap;">Set New Password</a>
+        </div>
+      {% else %}
+        <div class="alert alert-warning mb-3" style="display:flex;align-items:center;justify-content:space-between;background:#2d2412;border:1px solid #d29922;color:#e3b341;padding:10px 16px;border-radius:6px;">
+          <span>⚠️ <strong>Security Notice:</strong> You are currently using the default installation password (valid for {{ current_user.days_until_password_expiry() }} more days). Please create your own password.</span>
+          <a href="{{ url_for('main.change_password') }}" class="btn btn-primary btn-sm" style="margin-left:12px;white-space:nowrap;">Change Password</a>
+        </div>
+      {% endif %}
+    {% endif %}
 
     {% if errors %}
       {% for err in errors %}

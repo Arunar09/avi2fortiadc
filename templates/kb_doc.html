@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block page_meta %}
+  <span class="page-meta">
+    <a href="{{ url_for('main.kb') }}" class="btn btn-ghost btn-sm" style="margin-right: 8px;">&larr; All Guides</a>
+    <span class="kb-tag">{{ doc.tag }}</span>
+    <span class="text-muted text-small ml-2">{{ doc.line_count }} lines &bull; {{ doc.size_kb }} KB</span>
+  </span>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1020px; margin: 0 auto;">
+  <div class="card" style="padding: 32px; background: #161b22; border: 1px solid #30363d; border-radius: 8px;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #30363d; padding-bottom: 16px; margin-bottom: 24px;">
+      <div>
+        <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: #f0f6fc;">{{ doc.title }}</h1>
+        <div class="text-small text-muted">
+          File: <code>docs/{{ doc.filename }}</code>
+        </div>
+      </div>
+      <div>
+        <a href="{{ url_for('main.kb') }}" class="btn btn-ghost btn-sm">&larr; Back to Knowledge Base</a>
+      </div>
+    </div>
+
+    {# ── Rendered Document Content ────────────────────────────────────────── #}
+    <div class="kb-doc-body" style="color: #c9d1d9; font-size: 14.5px; line-height: 1.7;">
+      {{ doc.html_content | safe }}
+    </div>
+
+    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center;">
+      <a href="{{ url_for('main.kb') }}" class="btn btn-ghost btn-sm">&larr; Back to Knowledge Base</a>
+      <span class="text-muted text-mini">Avi &rarr; FortiADC Documentation &bull; Air-gapped Offline Reader</span>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.kb-doc-body h1 { font-size: 20px; color: #58a6ff; margin-top: 28px; margin-bottom: 14px; border-bottom: 1px solid #21262d; padding-bottom: 6px; }
+.kb-doc-body h2 { font-size: 17px; color: #f0f6fc; margin-top: 24px; margin-bottom: 12px; border-bottom: 1px solid #21262d; padding-bottom: 4px; }
+.kb-doc-body h3 { font-size: 15px; color: #f0f6fc; margin-top: 20px; margin-bottom: 10px; }
+.kb-doc-body p { margin-bottom: 14px; }
+.kb-doc-body ul, .kb-doc-body ol { margin-bottom: 16px; padding-left: 24px; }
+.kb-doc-body li { margin-bottom: 6px; }
+.kb-doc-body pre { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 14px; overflow-x: auto; margin-bottom: 16px; }
+.kb-doc-body code { background: #1f242c; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: monospace; color: #79c0ff; }
+.kb-doc-body pre code { background: transparent; padding: 0; color: #c9d1d9; font-size: 13px; }
+.kb-doc-body table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13.5px; }
+.kb-doc-body th, .kb-doc-body td { border: 1px solid #30363d; padding: 8px 12px; text-align: left; }
+.kb-doc-body th { background: #21262d; color: #f0f6fc; font-weight: 600; }
+.kb-doc-body tr:nth-child(even) { background: #0d1117; }
+.kb-doc-body blockquote { border-left: 3px solid #58a6ff; margin: 0 0 16px 0; padding: 8px 16px; background: #0d1117; color: #8b949e; }
+.kb-doc-body hr { border: none; border-top: 1px solid #30363d; margin: 24px 0; }
+</style>
+{% endblock %}

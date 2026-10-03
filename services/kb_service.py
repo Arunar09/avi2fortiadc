@@ -15,23 +15,25 @@ from pathlib import Path
 from services.common import canonical_env_name
 
 
-# Docs that are useful operator references (subset — skip internals)
+# Docs that are useful operator references
 _FEATURED_DOCS = {
-    "MASTER-KNOWLEDGE-INDEX.md":      "Master Knowledge Index (Authoritative)",
-    "TECHNICAL-ARCHITECTURE.md":      "Technical Architecture (Internal Logic)",
-    "OBJECT-MAPPING.md":              "Object Mapping Reference",
-    "TROUBLESHOOTING.md":             "Troubleshooting Guide",
-    "FORTIADC-READINESS.md":          "FortiADC Readiness Assessment",
+    "00-PRODUCT-OVERVIEW.md":         "Product Overview & Scope",
+    "USER-GUIDE.md":                  "End-to-End User Guide",
+    "ARCHITECTURE.md":                "Architecture Overview",
+    "TECHNICAL-ARCHITECTURE.md":      "Technical Architecture & Pipeline",
+    "OBJECT-MAPPING-MATRIX.md":       "Avi to FortiADC Object Mapping Matrix",
+    "UNSUPPORTED-FEATURES.md":        "Unsupported Features & Manual Actions",
+    "DATASCRIPT-MIGRATION.md":        "DataScript Translation Guide",
+    "GSLB-MIGRATION.md":              "GSLB Migration Guide",
+    "SECURITY.md":                    "Security & Compliance Guide",
     "RUNBOOK.md":                     "Operations Runbook",
-    "MIGRATION-GUIDE.md":             "Migration Guide",
-    "LLM-USAGE.md":                   "LLM Assistance Guide",
-    "TENANT-ISOLATION.md":            "Tenant Isolation",
-    "ACCESS-MODEL.md":                "Access Model",
-    "GOVERNANCE.md":                  "Governance Controls",
-    "REVIEW-BOARD-QA.md":             "Review Board Q&A",
-    "ENTERPRISE-VALIDATION-CHECKLIST.md": "Validation Checklist",
-    "OPS-AUTOMATION.md":              "Ops Automation Guide",
-    "OPSAI-INTEGRATION.md":           "OpsAI Integration",
+    "TROUBLESHOOTING.md":             "Troubleshooting Guide",
+    "CLI-REFERENCE.md":               "CLI Reference",
+    "WEB-CONSOLE.md":                 "Web Console Operator Guide",
+    "OPERATING-MODEL.md":             "Operating Model & Roles",
+    "OPERATIONAL-GLOSSARY.md":        "Operational Glossary",
+    "QUALIFICATION.md":               "Evidence Qualification Matrix",
+    "MASTER-KNOWLEDGE-INDEX.md":      "Master Knowledge Index",
 }
 
 
@@ -186,3 +188,46 @@ def _get_resolved_entries(dirs: dict, query: str) -> list[dict]:
             })
 
     return entries
+
+
+def get_doc_detail(dirs: dict, filename: str) -> dict | None:
+    """Return document details and rendered HTML content safely."""
+    safe_name = Path(filename).name
+    if not safe_name.endswith(".md"):
+        return None
+
+    docs_dir = Path(dirs.get("tool_root", ".")) / "docs"
+    path = docs_dir / safe_name
+    if not path.is_file():
+        path = Path(dirs.get("tool_root", ".")) / safe_name
+        if not path.is_file():
+            return None
+
+    try:
+        raw_text = path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return None
+
+    title = _FEATURED_DOCS.get(safe_name, safe_name.replace(".md", "").replace("-", " "))
+    tag = _tag_for(safe_name)
+
+    html_content = ""
+    try:
+        import markdown
+        html_content = markdown.markdown(
+            raw_text,
+            extensions=["tables", "fenced_code", "nl2br", "sane_lists"]
+        )
+    except Exception:
+        import html
+        html_content = f"<pre style='white-space:pre-wrap;font-family:inherit;'>{html.escape(raw_text)}</pre>"
+
+    return {
+        "filename": safe_name,
+        "title": title,
+        "tag": tag,
+        "html_content": html_content,
+        "raw_text": raw_text,
+        "line_count": len(raw_text.splitlines()),
+        "size_kb": max(1, round(len(raw_text.encode("utf-8")) / 1024, 1)),
+    }

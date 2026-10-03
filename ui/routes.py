@@ -874,6 +874,16 @@ def slugify_filter(s):
     return slugify(s)
 
 
+@bp.before_request
+def check_password_expiry():
+    if current_user.is_authenticated:
+        if getattr(current_user, "is_default_password_expired", lambda: False)():
+            allowed = ["main.change_password", "main.logout", "static"]
+            if request.endpoint and request.endpoint not in allowed:
+                flash("Your default installation password has expired (7-day grace period ended). You must set a new password to continue.", "error")
+                return redirect(url_for("main.change_password"))
+
+
 # ── Authentication ───────────────────────────────────────────────────────────
 
 @bp.route("/login", methods=["GET", "POST"])
@@ -889,12 +899,45 @@ def login():
         if user and user.check_password(password):
             login_user(user)
             pipeline_svc.log_system_event(_dirs(), f"User '{username}' logged in successfully.", level="INFO")
+            if getattr(user, "must_change_password", False):
+                if getattr(user, "is_default_password_expired", lambda: False)():
+                    flash("Your temporary default password has expired (7-day limit reached). You must create a new password to continue.", "error")
+                    return redirect(url_for('main.change_password'))
+                else:
+                    days_left = user.days_until_password_expiry()
+                    flash(f"Security Notice: You are using the default password (expires in {days_left} days). Please set your own password.", "warning")
             return redirect(url_for('main.home'))
         
         pipeline_svc.log_system_event(_dirs(), f"Failed login attempt for username '{username}'.", level="WARN")
         flash("Invalid username or password.")
     
     return render_template("login.html")
+
+
+@bp.route("/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    if request.method == "POST":
+        current_pass = request.form.get("current_password", "")
+        new_pass = request.form.get("new_password", "")
+        confirm_pass = request.form.get("confirm_password", "")
+
+        if new_pass != confirm_pass:
+            flash("New password and confirmation do not match.", "error")
+            return render_template("change_password.html", page_title="Change Password")
+
+        if len(new_pass) < 12:
+            flash("New password must contain at least 12 characters.", "error")
+            return render_template("change_password.html", page_title="Change Password")
+
+        ok, msg = user_svc.change_password(current_user.id, current_pass, new_pass)
+        if ok:
+            pipeline_svc.log_system_event(_dirs(), f"User '{current_user.username}' updated their password.", level="INFO")
+            flash("Password updated successfully!", "success")
+            return redirect(url_for('main.home'))
+        flash(msg, "error")
+
+    return render_template("change_password.html", page_title="Change Password")
 
 
 @bp.route("/logout")
@@ -1961,6 +2004,24 @@ def kb():
         summary    = summary,
         search     = search,
         errors     = [e for e in [err1, err2] if e],
+    )
+
+
+@bp.route("/kb/doc/<path:filename>")
+@login_required
+def kb_doc_view(filename):
+    """Render a knowledge base document with full readability."""
+    dirs = _dirs()
+    safe_name = _safe_filename(filename)
+    if not safe_name or not safe_name.endswith(".md"):
+        abort(404)
+    doc_data = kb_svc.get_doc_detail(dirs, safe_name)
+    if not doc_data:
+        abort(404)
+    return render_template(
+        "kb_doc.html",
+        page_title = doc_data["title"],
+        doc = doc_data,
     )
 
 

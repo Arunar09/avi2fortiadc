@@ -6,6 +6,16 @@
 Migrate load balancer configuration from AVI Networks (VMware NSX Advanced Load Balancer)
 to FortiADC — safely, auditably, and without requiring any LLM or internet connection.
 
+> [!IMPORTANT]
+> **Operational Scope & Engineering Boundaries (Read Before Use):**  
+> This framework is an **extraction, schema-dereferencing, and transpilation accelerator**. It dereferences Avi UUIDs and translates core load-balancing primitives (VIPs, Pools, Real Servers, Health Monitors, SSL profiles), saving 70–80% of manual mapping effort.  
+>  
+> **It is deliberately NOT a zero-touch "push-button" replacement:**  
+> 1. **DataScript (Lua) Logic:** Avi (`avi.http.*`) and FortiADC PageScripts use fundamentally different event runtimes. Automated 1:1 translation is not guaranteed; scripts are extracted and flagged as `MANUAL`/`WARN` for manual engineer inspection and testing.  
+> 2. **WAF & Security Rule Parity:** Avi CRS/ModSecurity rule groups do not translate 1:1 into FortiADC proprietary signature profiles and require security team tuning.  
+> 3. **Network Topology & Underlay:** Service Engine routing (floating VIPs, VRFs, BGP route injection) does not automatically map to FortiADC physical interfaces or VDOMs and must be provisioned independently.  
+> 4. **Review Cadence:** All generated candidate configurations must be reviewed and tested in a non-production VDOM or staging environment prior to live cutover.
+
 ---
 
 ## What this tool does

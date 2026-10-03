@@ -39,17 +39,17 @@
     <div class="stat-label">Certificates</div>
   </div>
   <div class="stat-card">
-    <div class="stat-number" style="color:{% if summary.total_blocked > 0 %}#f26e6e{% else %}#3ecf6e{% endif %}">
+    <div class="stat-number" style="color:{% if summary.total_blocked > 0 %}#e06c75{% else %}#98c379{% endif %}">
       {{ summary.total_blocked }}
     </div>
     <div class="stat-label">Blocked</div>
   </div>
   <div class="stat-card">
-    <div class="stat-number" style="color:#5b9cf6">{{ summary.total_manual }}</div>
+    <div class="stat-number" style="color:#61afef">{{ summary.total_manual }}</div>
     <div class="stat-label">Manual Items</div>
   </div>
   <div class="stat-card">
-    <div class="stat-number" style="color:#3ecf6e">{{ summary.env_statuses.deployed }}</div>
+    <div class="stat-number" style="color:#98c379">{{ summary.env_statuses.deployed }}</div>
     <div class="stat-label">Deployed</div>
   </div>
 </div>
@@ -139,9 +139,9 @@
         </td>
         <td>
           {% if pf.open_items > 0 %}
-            <span style="color:#f26e6e">{{ pf.open_items }}</span>
+            <span style="color:#e06c75">{{ pf.open_items }}</span>
           {% else %}
-            <span style="color:#3ecf6e">0</span>
+            <span style="color:#98c379">0</span>
           {% endif %}
         </td>
         <td class="text-small text-muted">
@@ -185,9 +185,9 @@
         </td>
         <td>
           {% if cert.exportable %}
-            <span style="color:#3ecf6e">yes</span>
+            <span style="color:#98c379">yes</span>
           {% else %}
-            <span style="color:#f26e6e;font-weight:700;">HSM</span>
+            <span style="color:#e06c75;font-weight:700;">HSM</span>
           {% endif %}
         </td>
       </tr>

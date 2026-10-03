@@ -46,13 +46,13 @@
   <div class="kb-entry">
     <div class="kb-entry-title">
       {% if entry.source == 'docs' %}
-        <a href="{{ url_for('main.kb_doc_view', filename=entry.filename) }}" style="color: #58a6ff; text-decoration: none; font-weight: 600;">{{ entry.title }}</a>
+        <a href="{{ url_for('main.kb_doc_view', filename=entry.filename) }}" style="color: #61afef; text-decoration: none; font-weight: 600;">{{ entry.title }}</a>
       {% else %}
         {{ entry.title }}
       {% endif %}
       <span class="kb-tag">{{ entry.tag }}</span>
       {% if entry.source == 'migration_learning' %}
-        <span class="kb-tag" style="background:#1a2a1a;color:#3ecf6e;border-color:#1d4a2e;">learned</span>
+        <span class="kb-tag" style="background: rgba(152, 195, 121, 0.12); color: #98c379; border-color: rgba(152, 195, 121, 0.24);">learned</span>
       {% endif %}
     </div>
     {% if entry.excerpt %}
